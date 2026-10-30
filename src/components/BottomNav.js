@@ -1,29 +1,34 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../context/LanguageContext';
 
-const DEFAULT_NAV = [
-  { key: 'home',     label: 'Asosiy',    on: 'home',       off: 'home-outline' },
-  { key: 'services', label: 'Xizmatlar', on: 'grid',       off: 'grid-outline' },
-  { key: 'chat',     label: 'Xabarlar',  on: 'chatbubble', off: 'chatbubble-outline' },
-  { key: 'profile',  label: 'Profil',    on: 'person',     off: 'person-outline' },
+const NAV = [
+  { key: 'home',     labelKey: 'bottomNav.home',     on: 'home',            off: 'home-outline' },
+  { key: 'newOrder', labelKey: 'bottomNav.newOrder', on: 'add-circle',      off: 'add-circle-outline' },
+  { key: 'ads',      labelKey: 'bottomNav.listings', on: 'images',          off: 'images-outline' },
+  { key: 'profile',  labelKey: 'bottomNav.profile',  on: 'person',          off: 'person-outline' },
 ];
 
 export default function BottomNav({
   activeTab,
   onTabChange,
-  tabs = DEFAULT_NAV,
   accent = '#e87a45',
   background = '#141c2c',
   border = 'rgba(255,255,255,0.08)',
   muted = 'rgba(255,255,255,0.4)',
   ringColor,
 }) {
+  const { t } = useLanguage();
+  const bottomInset = useSafeAreaInsets().bottom;
   const ring = ringColor ?? background;
 
   return (
-    <View style={[s.nav, { backgroundColor: background, borderColor: border }]}>
-      {tabs.map((item) => {
+    <View
+      style={[s.nav, { backgroundColor: background, borderColor: border, bottom: bottomInset + 10 }]}
+    >
+      {NAV.map((item) => {
         const active = item.key === activeTab;
         return (
           <TouchableOpacity
@@ -31,6 +36,9 @@ export default function BottomNav({
             style={s.tab}
             onPress={() => onTabChange?.(item.key)}
             activeOpacity={0.75}
+            accessibilityRole="tab"
+            accessibilityLabel={t(item.labelKey)}
+            accessibilityState={{ selected: active }}
           >
             {active ? (
               <View style={[s.bubble, { backgroundColor: accent, borderColor: ring, shadowColor: accent }]}>
@@ -39,7 +47,7 @@ export default function BottomNav({
             ) : (
               <>
                 <Ionicons name={item.off} size={21} color={muted} />
-                <Text style={[s.label, { color: muted }]}>{item.label}</Text>
+                <Text style={[s.label, { color: muted }]}>{t(item.labelKey)}</Text>
               </>
             )}
           </TouchableOpacity>

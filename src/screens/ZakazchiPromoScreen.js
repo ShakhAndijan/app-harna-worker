@@ -1,51 +1,81 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  TextInput,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import useBottomInset from '../hooks/useBottomInset';
 
+const fmt = (n) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
-import { formatNumber } from '../utils/format';
 const PROMO = [
   {
-    id: 'p1', code: 'USTA20', type: 'percent', value: 20, cap: 50000,
-    title: 'Birinchi buyurtmaga', desc: 'Har qanday xizmatga 20% chegirma',
-    status: 'active', expire: '30-iyun', accent: '#E8743B',
+    id: 'p1',
+    code: 'USTA20',
+    type: 'percent',
+    value: 20,
+    cap: 50000,
+    title: 'Birinchi buyurtmaga',
+    desc: 'Har qanday xizmatga 20% chegirma',
+    status: 'active',
+    expire: '30-iyun',
+    accent: '#E8743B',
   },
   {
-    id: 'p2', code: 'SANTEX50', type: 'amount', value: 50000, cap: null,
-    title: 'Santexnika xizmati', desc: 'Santexnik chaqirganda chegirma',
-    status: 'active', expire: '15-iyul', accent: '#3E8BE8',
+    id: 'p2',
+    code: 'SANTEX50',
+    type: 'amount',
+    value: 50000,
+    cap: null,
+    title: 'Santexnika xizmati',
+    desc: 'Santexnik chaqirganda chegirma',
+    status: 'active',
+    expire: '15-iyul',
+    accent: '#3E8BE8',
   },
   {
-    id: 'p3', code: 'YOZ2026', type: 'percent', value: 15, cap: 40000,
-    title: 'Yozgi aksiya', desc: 'Tozalash xizmatlariga 15%',
-    status: 'active', expire: '1-avgust', accent: '#34B57C',
+    id: 'p3',
+    code: 'YOZ2026',
+    type: 'percent',
+    value: 15,
+    cap: 40000,
+    title: 'Yozgi aksiya',
+    desc: 'Tozalash xizmatlariga 15%',
+    status: 'active',
+    expire: '1-avgust',
+    accent: '#34B57C',
   },
   {
-    id: 'p4', code: 'WELCOME10', type: 'percent', value: 10, cap: 30000,
-    title: 'Xush kelibsiz', desc: 'Ilovaga kirganingiz uchun',
-    status: 'used', expire: '12-may', accent: '#9B6FE3',
+    id: 'p4',
+    code: 'WELCOME10',
+    type: 'percent',
+    value: 10,
+    cap: 30000,
+    title: 'Xush kelibsiz',
+    desc: 'Ilovaga kirganingiz uchun',
+    status: 'used',
+    expire: '12-may',
+    accent: '#9B6FE3',
   },
   {
-    id: 'p5', code: 'BAHOR25', type: 'percent', value: 25, cap: 60000,
-    title: 'Bahorgi chegirma', desc: "Mebel yig'ishga 25%",
-    status: 'expired', expire: '1-aprel', accent: '#E85B9A',
+    id: 'p5',
+    code: 'BAHOR25',
+    type: 'percent',
+    value: 25,
+    cap: 60000,
+    title: 'Bahorgi chegirma',
+    desc: "Mebel yig'ishga 25%",
+    status: 'expired',
+    expire: '1-aprel',
+    accent: '#E85B9A',
   },
 ];
 
-const PTABS = [
-  { key: 'active', label: 'Faol' },
-  { key: 'used', label: 'Ishlatilgan' },
-  { key: 'expired', label: "Muddati o'tgan" },
+const PTABS = (tr) => [
+  { key: 'active', label: tr('promo.tabs.active') },
+  { key: 'used', label: tr('promo.tabs.used') },
+  { key: 'expired', label: tr('promo.tabs.expired') },
 ];
 
 const PCOUNTS = {
@@ -55,10 +85,11 @@ const PCOUNTS = {
 };
 
 function PromoCard({ p, t }) {
+  const { t: tr } = useLanguage();
   const [copied, setCopied] = useState(false);
   const dim = p.status !== 'active';
-  const valueLabel = p.type === 'percent' ? `${p.value}%` : formatNumber(p.value);
-  const valueSub = p.type === 'percent' ? 'chegirma' : "so'm";
+  const valueLabel = p.type === 'percent' ? `${p.value}%` : fmt(p.value);
+  const valueSub = p.type === 'percent' ? tr('promo.discount') : tr('common.currencySom');
 
   const onCopy = () => {
     if (dim) return;
@@ -73,7 +104,7 @@ function PromoCard({ p, t }) {
         <Text style={s.stubValue}>{valueLabel}</Text>
         <Text style={s.stubSub}>{valueSub}</Text>
         {p.cap && p.type === 'percent' && (
-          <Text style={s.stubCap}>{formatNumber(p.cap)} so'm{'\n'}gacha</Text>
+          <Text style={s.stubCap}>{tr('promo.capUpTo', { cap: fmt(p.cap) })}</Text>
         )}
       </View>
 
@@ -94,12 +125,12 @@ function PromoCard({ p, t }) {
           </Text>
           {p.status === 'used' && (
             <View style={[s.badge, { backgroundColor: t.rowIconBg }]}>
-              <Text style={[s.badgeText, { color: t.muted }]}>Ishlatilgan</Text>
+              <Text style={[s.badgeText, { color: t.muted }]}>{tr('promo.tabs.used')}</Text>
             </View>
           )}
           {p.status === 'expired' && (
             <View style={[s.badge, { backgroundColor: 'rgba(224,71,58,0.13)' }]}>
-              <Text style={[s.badgeText, { color: t.red }]}>Muddati o'tgan</Text>
+              <Text style={[s.badgeText, { color: t.red }]}>{tr('promo.tabs.expired')}</Text>
             </View>
           )}
         </View>
@@ -112,16 +143,14 @@ function PromoCard({ p, t }) {
         <View style={s.expiryRow}>
           <MaterialCommunityIcons name="clock-outline" size={12} color={t.faint} />
           <Text style={[s.expiryText, { color: t.faint }]}>
-            {p.status === 'active' ? `${p.expire}gacha amal qiladi` : p.expire}
+            {p.status === 'active' ? tr('promo.expiresOn', { date: p.expire }) : p.expire}
           </Text>
         </View>
 
         {/* Code + copy */}
         <View style={s.codeRow}>
           <View style={[s.codeBox, { borderColor: t.border }]}>
-            <Text style={[s.codeText, { color: dim ? t.muted : t.text }]}>
-              {p.code}
-            </Text>
+            <Text style={[s.codeText, { color: dim ? t.muted : t.text }]}>{p.code}</Text>
           </View>
           <TouchableOpacity
             onPress={onCopy}
@@ -130,11 +159,7 @@ function PromoCard({ p, t }) {
             style={[
               s.copyBtn,
               {
-                backgroundColor: copied
-                  ? 'rgba(47,163,122,0.15)'
-                  : dim
-                  ? t.rowIconBg
-                  : p.accent,
+                backgroundColor: copied ? 'rgba(47,163,122,0.15)' : dim ? t.rowIconBg : p.accent,
               },
             ]}
           >
@@ -144,7 +169,7 @@ function PromoCard({ p, t }) {
               color={copied ? t.green : dim ? t.muted : '#fff'}
             />
             <Text style={[s.copyText, { color: copied ? t.green : dim ? t.muted : '#fff' }]}>
-              {copied ? 'Nusxalandi' : 'Nusxa'}
+              {copied ? tr('promo.copied') : tr('promo.copy')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -154,17 +179,17 @@ function PromoCard({ p, t }) {
 }
 
 export default function ZakazchiPromoScreen({ onBack }) {
+  const bottomInset = useBottomInset();
   const { theme: t } = useTheme();
+  const { t: tr } = useLanguage();
   const [tab, setTab] = useState('active');
   const [field, setField] = useState('');
 
   const list = PROMO.filter((p) => p.status === tab);
+  const ptabs = PTABS(tr);
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: t.bg }}
-      edges={['top', 'left', 'right']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       <StatusBar style={t.isDark ? 'light' : 'dark'} />
 
       {/* Header */}
@@ -176,7 +201,7 @@ export default function ZakazchiPromoScreen({ onBack }) {
         >
           <MaterialCommunityIcons name="chevron-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[s.headerTitle, { color: t.text }]}>Promokodlarim</Text>
+        <Text style={[s.headerTitle, { color: t.text }]}>{tr('promo.headerTitle')}</Text>
         <View style={{ flex: 1 }} />
         <View style={s.headerBadge}>
           <MaterialCommunityIcons name="gift-outline" size={17} color={t.orange} />
@@ -191,7 +216,7 @@ export default function ZakazchiPromoScreen({ onBack }) {
           <TextInput
             value={field}
             onChangeText={(v) => setField(v.toUpperCase())}
-            placeholder="Promokodni kiriting"
+            placeholder={tr('promo.inputPlaceholder')}
             placeholderTextColor={t.faint}
             autoCapitalize="characters"
             style={[s.textInput, { color: t.text }]}
@@ -203,13 +228,15 @@ export default function ZakazchiPromoScreen({ onBack }) {
           disabled={!field}
         >
           <MaterialCommunityIcons name="plus" size={18} color={field ? '#fff' : t.muted} />
-          <Text style={[s.addBtnText, { color: field ? '#fff' : t.muted }]}>Qo'shish</Text>
+          <Text style={[s.addBtnText, { color: field ? '#fff' : t.muted }]}>
+            {tr('promo.addBtn')}
+          </Text>
         </TouchableOpacity>
       </View>
 
       {/* Tabs */}
       <View style={s.tabsRow}>
-        {PTABS.map((tb) => {
+        {ptabs.map((tb) => {
           const on = tb.key === tab;
           return (
             <TouchableOpacity
@@ -222,7 +249,12 @@ export default function ZakazchiPromoScreen({ onBack }) {
               ]}
             >
               <Text style={[s.tabLabel, { color: on ? '#fff' : t.muted }]}>{tb.label}</Text>
-              <View style={[s.tabBadge, { backgroundColor: on ? 'rgba(255,255,255,0.25)' : t.rowIconBg }]}>
+              <View
+                style={[
+                  s.tabBadge,
+                  { backgroundColor: on ? 'rgba(255,255,255,0.25)' : t.rowIconBg },
+                ]}
+              >
                 <Text style={[s.tabBadgeText, { color: on ? '#fff' : t.faint }]}>
                   {PCOUNTS[tb.key]}
                 </Text>
@@ -235,7 +267,7 @@ export default function ZakazchiPromoScreen({ onBack }) {
       {/* Promo list */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={s.list}
+        contentContainerStyle={[s.list, { paddingBottom: 24 + bottomInset }]}
         showsVerticalScrollIndicator={false}
       >
         {list.length ? (
@@ -245,7 +277,7 @@ export default function ZakazchiPromoScreen({ onBack }) {
             <View style={[s.emptyIcon, { backgroundColor: t.card }]}>
               <MaterialCommunityIcons name="gift-outline" size={30} color={t.muted} />
             </View>
-            <Text style={[s.emptyText, { color: t.muted }]}>Bu yerda promokod yo'q</Text>
+            <Text style={[s.emptyText, { color: t.muted }]}>{tr('promo.emptyText')}</Text>
           </View>
         )}
       </ScrollView>

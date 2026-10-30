@@ -1,222 +1,67 @@
-import { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
-import { useUser } from '../context/UserContext';
+import { useLanguage } from '../context/LanguageContext';
 import SuccessModal from '../components/SuccessModal';
-import AfishLoader from '../components/AfishLoader';
-import { getGenders, getRegions, getDistricts } from '../api/reference';
-import { getCustomerMe, updateCustomerMe } from '../api/user';
-import { formatDisplayDate } from './edit-profile/dates';
-import { FALLBACK_GENDERS, FALLBACK_REGIONS, FALLBACK_DISTRICTS } from './edit-profile/constants';
-import TextField from './edit-profile/TextField';
-import GenderToggle from './edit-profile/GenderToggle';
-import SelectField from './edit-profile/SelectField';
-import OptionSheet from './edit-profile/OptionSheet';
-import BirthDateSheet from './edit-profile/BirthDateSheet';
-import LocationField from './edit-profile/LocationField';
-import GroupLabel from './edit-profile/GroupLabel';
-import ProfileHeader from './edit-profile/ProfileHeader';
+import AppLoader from '../components/AppLoader';
+import { s } from './edit-profile/styles';
+import { formatDisplayDate } from './edit-profile/utils';
+import useProfileForm from './edit-profile/hooks/useProfileForm';
+import useReferenceLists from './edit-profile/hooks/useReferenceLists';
+import ScreenHeader from './edit-profile/components/ScreenHeader';
+import FormSection from './edit-profile/components/FormSection';
+import TextField from './edit-profile/components/TextField';
+import SelectField from './edit-profile/components/SelectField';
+import GenderToggle from './edit-profile/components/GenderToggle';
+import LocationField from './edit-profile/components/LocationField';
+import OptionSheet from './edit-profile/components/OptionSheet';
+import BirthDateSheet from './edit-profile/components/BirthDateSheet';
+import useBottomInset from '../hooks/useBottomInset';
 
+// Profilni tahrirlash: shaxsiy ma'lumot, aloqa va manzil. Forma holati `useProfileForm` da,
+// tanlov ro'yxatlari `useReferenceLists` da, har bir maydon/oyna `edit-profile/components/` da.
 export default function EditProfileScreen({ onBack }) {
+  const bottomInset = useBottomInset();
   const { theme: t } = useTheme();
-  const { refreshUser } = useUser();
+  const { t: tr } = useLanguage();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [genderId, setGenderId] = useState(null);
-  const [birthDate, setBirthDate] = useState('');
-  const [regionId, setRegionId] = useState(null);
-  const [districtId, setDistrictId] = useState(null);
-  const [address, setAddress] = useState('');
-  const [gpsLat, setGpsLat] = useState(null);
-  const [gpsLng, setGpsLng] = useState(null);
-  const [landmark, setLandmark] = useState('');
+  const form = useProfileForm();
+  const { values: v, setField } = form;
+  const lists = useReferenceLists(v.regionId);
 
-  const [genders, setGenders] = useState(FALLBACK_GENDERS);
-  const [regions, setRegions] = useState(FALLBACK_REGIONS);
-  const [districts, setDistricts] = useState([]);
-  const [gendersLoading, setGendersLoading] = useState(true);
-  const [regionsLoading, setRegionsLoading] = useState(true);
-  const [districtsLoading, setDistrictsLoading] = useState(false);
+  // Qaysi tanlov oynasi ochiq: 'region' | 'district' | 'date' | null.
+  const [sheet, setSheet] = useState(null);
+  const closeSheet = () => setSheet(null);
 
-  const [showRegionSheet, setShowRegionSheet] = useState(false);
-  const [showDistrictSheet, setShowDistrictSheet] = useState(false);
-  const [showDateSheet, setShowDateSheet] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [locating, setLocating] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const selectedRegion = lists.regions.find((r) => r.id === v.regionId);
+  const selectedDistrict = lists.districts.find((d) => d.id === v.districtId);
 
-  useEffect(() => {
-    let alive = true;
-    getCustomerMe()
-      .then((data) => {
-        if (!alive || !data) return;
-        setFirstName(data.first_name || '');
-        setLastName(data.last_name || '');
-        setEmail(data.email || '');
-        setGenderId(
-          data.gender && typeof data.gender === 'object'
-            ? data.gender.id ?? null
-            : data.gender ?? null
-        );
-        setBirthDate(data.birth_date || '');
-        setRegionId(
-          data.region && typeof data.region === 'object'
-            ? data.region.id ?? null
-            : data.region ?? null
-        );
-        setDistrictId(
-          data.district && typeof data.district === 'object'
-            ? data.district.id ?? null
-            : data.district ?? null
-        );
-        setAddress(data.address || '');
-        setGpsLat(
-          data.default_gps_lat != null ? Number(data.default_gps_lat) : null
-        );
-        setGpsLng(
-          data.default_gps_lng != null ? Number(data.default_gps_lng) : null
-        );
-        setLandmark(data.default_landmark || '');
-      })
-      .catch((e) => {
-        Alert.alert(
-          'Xatolik',
-          e.message || "Profil ma'lumotlarini yuklab bo'lmadi"
-        );
-      })
-      .finally(() => alive && setInitialLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
-    getGenders()
-      .then((list) => {
-        if (alive && list?.length) setGenders(list);
-      })
-      .catch(() => {})
-      .finally(() => alive && setGendersLoading(false));
-    getRegions()
-      .then((list) => {
-        if (alive && list?.length) setRegions(list);
-      })
-      .catch(() => {})
-      .finally(() => alive && setRegionsLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!regionId) {
-      setDistricts([]);
-      return;
-    }
-    let alive = true;
-    setDistrictsLoading(true);
-    getDistricts(regionId)
-      .then((list) => {
-        if (alive) setDistricts(list?.length ? list : FALLBACK_DISTRICTS);
-      })
-      .catch(() => {
-        if (alive) setDistricts(FALLBACK_DISTRICTS);
-      })
-      .finally(() => alive && setDistrictsLoading(false));
-    return () => {
-      alive = false;
-    };
-  }, [regionId]);
-
-  const selectedRegion = regions.find((r) => r.id === regionId);
-  const selectedDistrict = districts.find((d) => d.id === districtId);
-
-  const isReady =
-    firstName.trim().length > 0 && lastName.trim().length > 0 && !saving;
-
-  const handleLocate = async () => {
-    setLocating(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Ruxsat kerak', 'Joylashuv uchun ruxsat bering.');
-        return;
-      }
-      const pos = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
-      setGpsLat(pos.coords.latitude);
-      setGpsLng(pos.coords.longitude);
-    } catch {
-      Alert.alert(
-        'Xato',
-        "Joylashuvni aniqlab bo'lmadi. Qayta urinib ko'ring."
-      );
-    } finally {
-      setLocating(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!isReady) return;
-    const payload = {
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      email: email.trim(),
-      gender_id: genderId,
-      birth_date: birthDate,
-      region_id: regionId,
-      district_id: districtId,
-      address: address.trim(),
-      default_gps_lat: gpsLat,
-      default_gps_lng: gpsLng,
-      default_landmark: landmark.trim(),
-    };
-    setSaving(true);
-    try {
-      await updateCustomerMe(payload);
-      await refreshUser();
-      setShowSuccess(true);
-    } catch (e) {
-      Alert.alert(
-        'Xatolik',
-        e.message || 'Profilni saqlashda xatolik yuz berdi'
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (initialLoading) {
+  if (form.initialLoading) {
     return (
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: t.bg }}
-        edges={['top', 'left', 'right']}
-      >
+      <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
         <StatusBar style={t.isDark ? 'light' : 'dark'} />
-        <ProfileHeader title="Profilni tahrirlash" onBack={onBack} t={t} />
+        <ScreenHeader onBack={onBack} />
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-          <AfishLoader size={120} />
+          <AppLoader size={120} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: t.bg }}
-      edges={['top', 'left', 'right']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       <StatusBar style={t.isDark ? 'light' : 'dark'} />
-
-      <ProfileHeader title="Profilni tahrirlash" onBack={onBack} t={t} />
+      <ScreenHeader onBack={onBack} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -224,173 +69,134 @@ export default function EditProfileScreen({ onBack }) {
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={s.scroll}
+          contentContainerStyle={[s.scroll, { paddingBottom: 40 + bottomInset }]}
           keyboardShouldPersistTaps="handled"
         >
-          <GroupLabel t={t}>SHAXSIY MA'LUMOTLAR</GroupLabel>
-          <View
-            style={[s.card, { backgroundColor: t.card, borderColor: t.border }]}
-          >
+          <FormSection title={tr('editProfile.groups.personal')}>
             <TextField
-              label="Ism"
-              value={firstName}
-              onChangeText={setFirstName}
-              placeholder="Ismingiz"
-              t={t}
+              label={tr('editProfile.firstNameLabel')}
+              value={v.firstName}
+              onChangeText={(x) => setField('firstName', x)}
+              placeholder={tr('editProfile.firstNamePlaceholder')}
             />
             <TextField
-              label="Familiya"
-              value={lastName}
-              onChangeText={setLastName}
-              placeholder="Familiyangiz"
-              t={t}
+              label={tr('editProfile.lastNameLabel')}
+              value={v.lastName}
+              onChangeText={(x) => setField('lastName', x)}
+              placeholder={tr('editProfile.lastNamePlaceholder')}
             />
             <GenderToggle
-              genders={genders}
-              selectedId={genderId}
-              onSelect={setGenderId}
-              loading={gendersLoading}
-              t={t}
+              genders={lists.genders}
+              selectedId={v.genderId}
+              onSelect={(id) => setField('genderId', id)}
+              loading={lists.gendersLoading}
             />
             <SelectField
-              label="Tug'ilgan sana"
-              value={formatDisplayDate(birthDate)}
-              placeholder="Kun.Oy.Yil"
-              onPress={() => setShowDateSheet(true)}
-              t={t}
+              label={tr('editProfile.birthDateLabel')}
+              value={formatDisplayDate(v.birthDate)}
+              placeholder={tr('editProfile.birthDatePlaceholder')}
+              onPress={() => setSheet('date')}
             />
-          </View>
+          </FormSection>
 
-          <GroupLabel t={t}>ALOQA</GroupLabel>
-          <View
-            style={[s.card, { backgroundColor: t.card, borderColor: t.border }]}
-          >
+          <FormSection title={tr('editProfile.groups.contact')}>
             <TextField
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="email@example.com"
-              t={t}
+              label={tr('editProfile.emailLabel')}
+              value={v.email}
+              onChangeText={(x) => setField('email', x)}
+              placeholder={tr('editProfile.emailPlaceholder')}
               keyboardType="email-address"
             />
-          </View>
+          </FormSection>
 
-          <GroupLabel t={t}>MANZIL</GroupLabel>
-          <View
-            style={[s.card, { backgroundColor: t.card, borderColor: t.border }]}
-          >
+          <FormSection title={tr('editProfile.groups.address')}>
             <SelectField
-              label="Viloyat"
+              label={tr('editProfile.regionLabel')}
               value={selectedRegion?.name}
-              placeholder="Viloyatni tanlang"
-              onPress={() => setShowRegionSheet(true)}
-              t={t}
+              placeholder={tr('editProfile.regionPlaceholder')}
+              onPress={() => setSheet('region')}
             />
             <SelectField
-              label="Tuman"
+              label={tr('editProfile.districtLabel')}
               value={selectedDistrict?.name}
               placeholder={
-                regionId ? 'Tumanni tanlang' : 'Avval viloyatni tanlang'
+                v.regionId
+                  ? tr('editProfile.districtPlaceholder')
+                  : tr('editProfile.districtPlaceholderNoRegion')
               }
-              onPress={() => setShowDistrictSheet(true)}
-              t={t}
-              disabled={!regionId}
+              onPress={() => setSheet('district')}
+              disabled={!v.regionId}
             />
             <TextField
-              label="To'liq manzil"
-              value={address}
-              onChangeText={setAddress}
-              placeholder="Ko'cha, uy raqami"
-              t={t}
+              label={tr('editProfile.addressLabel')}
+              value={v.address}
+              onChangeText={(x) => setField('address', x)}
+              placeholder={tr('editProfile.addressPlaceholder')}
             />
             <LocationField
-              lat={gpsLat}
-              lng={gpsLng}
-              locating={locating}
-              onLocate={handleLocate}
-              t={t}
+              lat={v.gpsLat}
+              lng={v.gpsLng}
+              onChange={(lat, lng) => {
+                setField('gpsLat', lat);
+                setField('gpsLng', lng);
+              }}
             />
             <TextField
-              label="Mo'ljal"
-              value={landmark}
-              onChangeText={setLandmark}
-              placeholder="Masalan: Mega Planet ro'parasida"
-              t={t}
+              label={tr('editProfile.landmarkLabel')}
+              value={v.landmark}
+              onChangeText={(x) => setField('landmark', x)}
+              placeholder={tr('editProfile.landmarkPlaceholder')}
             />
-          </View>
+          </FormSection>
 
           <TouchableOpacity
-            style={[
-              s.saveBtn,
-              { backgroundColor: isReady ? t.orange : t.orange + '55' },
-            ]}
+            style={[s.saveBtn, { backgroundColor: form.isReady ? t.orange : t.orange + '55' }]}
             activeOpacity={0.85}
-            onPress={handleSave}
-            disabled={!isReady}
+            onPress={form.save}
+            disabled={!form.isReady}
           >
-            {saving ? (
+            {form.saving ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={s.saveBtnText}>Saqlash</Text>
+              <Text style={s.saveBtnText}>{tr('editProfile.saveBtn')}</Text>
             )}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
       <OptionSheet
-        visible={showRegionSheet}
-        onClose={() => setShowRegionSheet(false)}
-        title="Viloyatni tanlang"
-        options={regions}
-        selectedId={regionId}
-        onSelect={(item) => setRegionId(item.id)}
-        t={t}
-        loading={regionsLoading}
+        visible={sheet === 'region'}
+        onClose={closeSheet}
+        title={tr('editProfile.pickRegionTitle')}
+        options={lists.regions}
+        selectedId={v.regionId}
+        onSelect={(item) => setField('regionId', item.id)}
+        loading={lists.regionsLoading}
       />
       <OptionSheet
-        visible={showDistrictSheet}
-        onClose={() => setShowDistrictSheet(false)}
-        title="Tumanni tanlang"
-        options={districts}
-        selectedId={districtId}
-        onSelect={(item) => setDistrictId(item.id)}
-        t={t}
-        loading={districtsLoading}
+        visible={sheet === 'district'}
+        onClose={closeSheet}
+        title={tr('editProfile.pickDistrictTitle')}
+        options={lists.districts}
+        selectedId={v.districtId}
+        onSelect={(item) => setField('districtId', item.id)}
+        loading={lists.districtsLoading}
       />
       <BirthDateSheet
-        visible={showDateSheet}
-        onClose={() => setShowDateSheet(false)}
-        value={birthDate}
-        onChange={setBirthDate}
-        t={t}
+        visible={sheet === 'date'}
+        onClose={closeSheet}
+        value={v.birthDate}
+        onChange={(x) => setField('birthDate', x)}
       />
       <SuccessModal
-        visible={showSuccess}
+        visible={form.saved}
         onClose={() => {
-          setShowSuccess(false);
+          form.dismissSaved();
           onBack();
         }}
         t={t}
-        message="Profil ma'lumotlari muvaffaqiyatli yangilandi."
+        message={tr('editProfile.successMessage')}
       />
     </SafeAreaView>
   );
 }
-
-const s = StyleSheet.create({
-  scroll: { paddingHorizontal: 20, paddingBottom: 40 },
-  card: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 16,
-    gap: 16,
-  },
-  saveBtn: {
-    height: 54,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 26,
-  },
-  saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-});

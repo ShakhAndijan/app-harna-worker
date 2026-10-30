@@ -1,13 +1,25 @@
-import { View, Text, Image, StyleSheet, ActivityIndicator, AppState } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, AppState } from 'react-native';
+import { useState, useEffect } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { COLORS } from '../../constants/colors';
+import { useLanguage } from '../../context/LanguageContext';
 import BackBtn from '../../components/login/BackBtn';
 import OtpInput from '../../components/login/OtpInput';
 import PrimaryBtn from '../../components/login/PrimaryBtn';
+import BrandLogo from '../../components/BrandLogo';
 
-import { formatPhone } from '../../utils/format';
-const TIMER_SECONDS = 60;
+const RESEND_SECONDS = 60;
+
+const formatPhone = (raw = '') => {
+  const d = raw.replace(/\D/g, '').slice(0, 9);
+  let s = '';
+  if (d.length > 0) s += d.slice(0, 2);
+  if (d.length > 2) s += ' ' + d.slice(2, 5);
+  if (d.length > 5) s += ' ' + d.slice(5, 7);
+  if (d.length > 7) s += ' ' + d.slice(7, 9);
+  return s;
+};
 
 export default function CodeStep({
   phone,
@@ -17,47 +29,40 @@ export default function CodeStep({
   devCode,
   onResend,
   resendLoading,
-  error,
+  resendError,
   confirmLoading,
-  onChangeCode,
+  error,
+  onAltLogin,
 }) {
+  const { t } = useLanguage();
   const [code, setCode] = useState('');
-  const [timer, setTimer] = useState(TIMER_SECONDS);
-  const deadlineRef = useRef(Date.now() + TIMER_SECONDS * 1000);
-
-  // Real vaqtga (deadline) asoslangan hisoblash — oddiy "t - 1" dekrement
-  // ilova fonda turganda JS taymerlari to'xtab qolgani sabab noto'g'ri
-  // bo'lardi (foydalanuvchi qaytganda sanoq to'xtagan joyidan davom etardi).
-  const recomputeTimer = () => {
-    const remaining = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
-    setTimer(remaining);
-  };
+  const [deadline, setDeadline] = useState(() => Date.now() + RESEND_SECONDS * 1000);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (timer === 0) return;
-    const id = setTimeout(recomputeTimer, 1000);
-    return () => clearTimeout(id);
-  }, [timer]);
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
-  // Ilova fondan qaytganda haqiqiy o'tgan vaqtga qarab darhol to'g'irlaymiz,
-  // taymerning navbatdagi tikida emas — shu bilan 1 daqiqadan ko'p vaqt
-  // o'tgan bo'lsa "qayta yuborish" darhol chiqadi.
   useEffect(() => {
+    // Ilova fonga ketib qaytganda taymer to'xtab qolgani uchun (setInterval
+    // background'da ishlamaydi) — foregroundga qaytganda haqiqiy vaqtga
+    // qarab darhol qayta hisoblaymiz.
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') recomputeTimer();
+      if (state === 'active') setNow(Date.now());
     });
     return () => sub.remove();
   }, []);
 
-  const handleBack = () => { setCode(''); onBack(); };
-  const handleChangeCode = (v) => {
-    setCode(v);
-    onChangeCode?.();
+  const timer = Math.max(0, Math.ceil((deadline - now) / 1000));
+
+  const handleBack = () => {
+    setCode('');
+    onBack();
   };
   const resend = async () => {
     setCode('');
-    deadlineRef.current = Date.now() + TIMER_SECONDS * 1000;
-    setTimer(TIMER_SECONDS);
+    setDeadline(Date.now() + RESEND_SECONDS * 1000);
     if (onResend) await onResend();
   };
 
@@ -66,52 +71,64 @@ export default function CodeStep({
       <BackBtn onPress={handleBack} />
 
       <View style={styles.header}>
-        <Image
-          source={require('../../../assets/afish-logo-vertical-pro.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>Tasdiqlash kodi</Text>
+        <BrandLogo width={280} dark />
+        <Text style={styles.title}>{t('login.codeStep.title')}</Text>
         <Text style={styles.subtitle}>
           {email ? (
-            <>
-              <Text style={styles.phone}>{email}</Text>
-              {' '}manziliga yuborilgan 6 xonali kodni kiriting.
-            </>
+            <Text style={styles.phone}>{email}</Text>
           ) : (
-            <>
-              <Text style={styles.phone}>+998 {formatPhone(phone)}</Text>
-              {' '}raqamiga yuborilgan 6 xonali kodni kiriting.
-            </>
-          )}
+            <Text style={styles.phone}>+998 {formatPhone(phone)}</Text>
+          )}{' '}
+          {email ? t('login.codeStep.subtitleEmail') : t('login.codeStep.subtitle')}
         </Text>
       </View>
 
-      <OtpInput value={code} onChange={handleChangeCode} length={6} />
+      <OtpInput value={code} onChange={setCode} length={6} />
+
+      {!!error && <Text style={styles.errorText}>{error}</Text>}
+      {!!resendError && <Text style={styles.errorText}>{resendError}</Text>}
 
       {!!devCode && (
         <Text style={styles.devCode}>
-          Dev kod: <Text style={styles.devCodeVal}>{devCode}</Text>
+          {t('login.codeStep.devCode')} <Text style={styles.devCodeVal}>{devCode}</Text>
         </Text>
       )}
 
-      {!!error && <Text style={styles.errorTxt}>{error}</Text>}
-
       <Text style={styles.timerText}>
         {timer > 0 ? (
-          <>Qayta yuborish <Text style={styles.timerCount}>00:{String(timer).padStart(2, '0')}</Text></>
+          <>
+            {t('login.codeStep.resendIn')}{' '}
+            <Text style={styles.timerCount}>00:{String(timer).padStart(2, '0')}</Text>
+          </>
         ) : resendLoading ? (
           <ActivityIndicator size="small" color={COLORS.orange} />
         ) : (
-          <Text style={styles.resend} onPress={resend}>Kodni qayta yuborish</Text>
+          <Text style={styles.resend} onPress={resend}>
+            {t('login.codeStep.resendNow')}
+          </Text>
         )}
       </Text>
 
       <PrimaryBtn
-        label={confirmLoading ? 'Tekshirilmoqda...' : 'Tasdiqlash'}
+        label={t('common.confirm')}
         disabled={code.length < 6 || confirmLoading}
+        icon={confirmLoading ? <ActivityIndicator size="small" color={COLORS.white} /> : undefined}
         onPress={() => onConfirm?.(code)}
       />
+
+      {!!onAltLogin && (
+        <View style={styles.altLoginCard}>
+          <View style={styles.altLoginIcon}>
+            <Ionicons name="key-outline" size={18} color={COLORS.orange} />
+          </View>
+          <View style={styles.altLoginTextWrap}>
+            <Text style={styles.altLogin} onPress={onAltLogin}>
+              {t('login.codeStep.altLogin')}
+            </Text>
+            <Text style={styles.altLoginHint}>{t('login.codeStep.altLoginHint')}</Text>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -157,16 +174,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: -8,
   },
+  errorText: {
+    color: '#e0473a',
+    fontSize: 13,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginTop: -8,
+  },
   devCodeVal: {
     color: COLORS.orange,
     fontWeight: '700',
-  },
-  errorTxt: {
-    color: COLORS.red ?? '#e0473a',
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: -8,
-    fontWeight: '600',
   },
   timerCount: {
     color: COLORS.white,
@@ -175,5 +192,36 @@ const styles = StyleSheet.create({
   resend: {
     color: COLORS.orange,
     fontWeight: '700',
+  },
+  altLoginCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: -6,
+  },
+  altLoginIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(232,122,69,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  altLoginTextWrap: { flex: 1, gap: 2 },
+  altLogin: {
+    color: COLORS.orange,
+    fontWeight: '700',
+    fontSize: 13.5,
+  },
+  altLoginHint: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 16,
   },
 });

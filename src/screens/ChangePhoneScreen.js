@@ -1,74 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
+import { appAlert } from '../components/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import PhoneInput from '../components/login/PhoneInput';
 import { requestChangePhoneOtp, verifyChangePhoneOtp } from '../api/user';
 import SuccessModal from '../components/SuccessModal';
+import OtpInput from '../components/login/OtpInput';
+import { getErrorMessage } from '../utils/errors';
+import useBottomInset from '../hooks/useBottomInset';
 
-import { formatPhone } from '../utils/format';
-/* ── Themed 6-cell OTP input (same idea as login's OtpInput, adapted to
-   light/dark via `t` since this screen lives inside the themed profile area) ── */
-function OtpCells({ value, onChange, t, length = 6 }) {
-  const refs = useRef([]);
-
-  const handleChange = (text, index) => {
-    const digit = text.replace(/\D/g, '').slice(-1);
-    const chars = Array.from({ length }, (_, i) => value[i] || '');
-    chars[index] = digit;
-    onChange(chars.join(''));
-    if (digit && index < length - 1) refs.current[index + 1]?.focus();
-  };
-
-  const handleKeyPress = (e, index) => {
-    if (e.nativeEvent.key === 'Backspace' && !value[index] && index > 0) {
-      refs.current[index - 1]?.focus();
-    }
-  };
-
-  return (
-    <View style={s.otpRow}>
-      {Array.from({ length }).map((_, i) => {
-        const filled = !!value[i];
-        return (
-          <TextInput
-            key={i}
-            ref={(el) => (refs.current[i] = el)}
-            style={[
-              s.otpCell,
-              {
-                backgroundColor: t.inputBg,
-                borderColor: filled ? t.orange : t.border,
-                color: t.text,
-              },
-              filled && { backgroundColor: t.orange + '18' },
-            ]}
-            value={value[i] || ''}
-            onChangeText={(text) => handleChange(text, i)}
-            onKeyPress={(e) => handleKeyPress(e, i)}
-            keyboardType="numeric"
-            maxLength={1}
-            selectTextOnFocus
-          />
-        );
-      })}
-    </View>
-  );
-}
+const formatPhone = (raw = '') => {
+  const d = raw.replace(/\D/g, '').slice(0, 9);
+  let s = '';
+  if (d.length > 0) s += d.slice(0, 2);
+  if (d.length > 2) s += ' ' + d.slice(2, 5);
+  if (d.length > 5) s += ' ' + d.slice(5, 7);
+  if (d.length > 7) s += ' ' + d.slice(7, 9);
+  return s;
+};
 
 export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
+  const bottomInset = useBottomInset();
   const { theme: t } = useTheme();
+  const { t: tr } = useLanguage();
   const [step, setStep] = useState('input');
   const [phone, setPhone] = useState('');
   const [sending, setSending] = useState(false);
@@ -103,7 +68,7 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
       setTimer(60);
       setStep('otp');
     } catch (e) {
-      setSendError(e.message || 'Kod yuborishda xatolik yuz berdi');
+      setSendError(getErrorMessage(e, tr, 'changePhone.sendError'));
     } finally {
       setSending(false);
     }
@@ -117,7 +82,7 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
       setCode('');
       setTimer(60);
     } catch (e) {
-      Alert.alert('Xato', e.message || 'Kod yuborishda xatolik yuz berdi');
+      appAlert(tr('common.errorTitle'), getErrorMessage(e, tr, 'changePhone.sendError'));
     } finally {
       setResending(false);
     }
@@ -131,7 +96,7 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
       await verifyChangePhoneOtp(fullPhone(), code);
       setShowSuccess(true);
     } catch (e) {
-      setConfirmError(e.message || 'Kod noto\'g\'ri, qayta urinib ko\'ring');
+      setConfirmError(getErrorMessage(e, tr, 'changePhone.codeError'));
     } finally {
       setVerifying(false);
     }
@@ -150,24 +115,28 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
           <MaterialCommunityIcons name="chevron-left" size={24} color={t.text} />
         </TouchableOpacity>
         <Text style={[s.headerTitle, { color: t.text }]}>
-          {step === 'otp' ? 'Tasdiqlash kodi' : 'Telefon raqamini almashtirish'}
+          {step === 'otp' ? tr('changePhone.otpHeaderTitle') : tr('changePhone.headerTitle')}
         </Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[s.scroll, { paddingBottom: 40 + bottomInset }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {step === 'input' ? (
           <>
             <View style={[s.hero, { backgroundColor: t.card, borderColor: t.border }]}>
               <View style={[s.heroIcon, { backgroundColor: t.blue + '1c' }]}>
                 <MaterialCommunityIcons name="phone-check-outline" size={24} color={t.blue} />
               </View>
-              <Text style={[s.heroText, { color: t.muted }]}>
-                Yangi raqamga tasdiqlash kodi yuboriladi. Kodni kiritgach, tizimga shu raqam bilan kirasiz.
-              </Text>
+              <Text style={[s.heroText, { color: t.muted }]}>{tr('changePhone.heroText')}</Text>
             </View>
 
             <View style={{ marginTop: 20, gap: 8 }}>
-              <Text style={[s.fieldLabel, { color: t.muted }]}>Joriy raqam</Text>
+              <Text style={[s.fieldLabel, { color: t.muted }]}>
+                {tr('changePhone.currentLabel')}
+              </Text>
               <View style={[s.currentRow, { backgroundColor: t.inputBg, borderColor: t.border }]}>
                 <MaterialCommunityIcons name="phone-outline" size={17} color={t.faint} />
                 <Text style={[s.currentText, { color: t.text }]}>{currentPhone}</Text>
@@ -175,11 +144,9 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
             </View>
 
             <View style={{ marginTop: 18, gap: 8 }}>
-              <Text style={[s.fieldLabel, { color: t.muted }]}>Yangi telefon raqami</Text>
+              <Text style={[s.fieldLabel, { color: t.muted }]}>{tr('changePhone.newLabel')}</Text>
               <PhoneInput value={phone} onChangeText={setPhone} theme={t} />
-              {!!sendError && (
-                <Text style={[s.errorText, { color: t.red }]}>{sendError}</Text>
-              )}
+              {!!sendError && <Text style={[s.errorText, { color: t.red }]}>{sendError}</Text>}
             </View>
 
             <TouchableOpacity
@@ -191,24 +158,48 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
               {sending ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={s.submitText}>Tasdiqlash kodini yuborish</Text>
+                <Text style={s.submitText}>{tr('changePhone.sendCodeBtn')}</Text>
               )}
             </TouchableOpacity>
           </>
         ) : (
           <>
             <View style={s.otpHero}>
-              <View style={[s.heroIcon, { backgroundColor: t.green + '1c', width: 64, height: 64, borderRadius: 18 }]}>
-                <MaterialCommunityIcons name="message-processing-outline" size={28} color={t.green} />
+              <View
+                style={[
+                  s.heroIcon,
+                  { backgroundColor: t.green + '1c', width: 64, height: 64, borderRadius: 18 },
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name="message-processing-outline"
+                  size={28}
+                  color={t.green}
+                />
               </View>
-              <Text style={[s.otpTitle, { color: t.text }]}>SMS kod yuborildi</Text>
+              <Text style={[s.otpTitle, { color: t.text }]}>{tr('changePhone.smsSentTitle')}</Text>
               <Text style={[s.otpSubtitle, { color: t.muted }]}>
-                <Text style={{ color: t.text, fontWeight: '700' }}>+998 {formatPhone(phone)}</Text>
-                {' '}raqamiga yuborilgan 6 xonali kodni kiriting.
+                {tr('changePhone.smsSentSubtitle', { phone: `+998 ${formatPhone(phone)}` })}
               </Text>
             </View>
 
-            <OtpCells value={code} onChange={setCode} t={t} />
+            <View style={s.otpWrap}>
+              <OtpInput
+                value={code}
+                onChange={setCode}
+                length={6}
+                cellHeight={54}
+                fontSize={20}
+                gap={8}
+                colors={{
+                  bg: t.inputBg,
+                  border: t.border,
+                  text: t.text,
+                  accent: t.orange,
+                  filledBg: t.orange + '18',
+                }}
+              />
+            </View>
 
             {!!confirmError && (
               <Text style={[s.errorText, { textAlign: 'center', marginTop: 10, color: t.red }]}>
@@ -218,14 +209,15 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
 
             {!!devCode && (
               <Text style={[s.devCode, { color: t.muted }]}>
-                Dev kod: <Text style={{ color: t.orange, fontWeight: '700' }}>{devCode}</Text>
+                {tr('changePhone.devCode')}{' '}
+                <Text style={{ color: t.orange, fontWeight: '700' }}>{devCode}</Text>
               </Text>
             )}
 
             <Text style={[s.timerText, { color: t.muted }]}>
               {timer > 0 ? (
                 <>
-                  Qayta yuborish{' '}
+                  {tr('changePhone.resendIn')}{' '}
                   <Text style={{ color: t.text, fontWeight: '700' }}>
                     00:{String(timer).padStart(2, '0')}
                   </Text>
@@ -234,13 +226,16 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
                 <ActivityIndicator size="small" color={t.orange} />
               ) : (
                 <Text style={{ color: t.orange, fontWeight: '700' }} onPress={handleResend}>
-                  Kodni qayta yuborish
+                  {tr('changePhone.resendNow')}
                 </Text>
               )}
             </Text>
 
             <TouchableOpacity
-              style={[s.submitBtn, { backgroundColor: isCodeReady ? t.orange : t.orange + '55', marginTop: 8 }]}
+              style={[
+                s.submitBtn,
+                { backgroundColor: isCodeReady ? t.orange : t.orange + '55', marginTop: 8 },
+              ]}
               activeOpacity={0.85}
               onPress={handleConfirm}
               disabled={!isCodeReady}
@@ -248,7 +243,7 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
               {verifying ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={s.submitText}>Tasdiqlash</Text>
+                <Text style={s.submitText}>{tr('common.confirm')}</Text>
               )}
             </TouchableOpacity>
           </>
@@ -263,7 +258,7 @@ export default function ChangePhoneScreen({ currentPhone, onBack, onChanged }) {
           else onBack();
         }}
         t={t}
-        message="Telefon raqamingiz muvaffaqiyatli yangilandi."
+        message={tr('changePhone.successMessage')}
       />
     </SafeAreaView>
   );
@@ -334,16 +329,7 @@ const s = StyleSheet.create({
   otpTitle: { fontSize: 17, fontWeight: '800' },
   otpSubtitle: { fontSize: 13, lineHeight: 19, textAlign: 'center', maxWidth: 300 },
 
-  otpRow: { flexDirection: 'row', gap: 8, justifyContent: 'space-between', marginTop: 22 },
-  otpCell: {
-    flex: 1,
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
+  otpWrap: { marginTop: 22 },
 
   timerText: { fontSize: 13, textAlign: 'center', marginTop: 16 },
   devCode: { fontSize: 13, textAlign: 'center', marginTop: 10 },

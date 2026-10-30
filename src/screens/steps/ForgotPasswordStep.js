@@ -6,12 +6,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Image,
   ActivityIndicator,
 } from 'react-native';
-import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import Feather from '@expo/vector-icons/Feather';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import PhoneInput from '../../components/login/PhoneInput';
+import BrandLogo from '../../components/BrandLogo';
 
 export default function ForgotPasswordStep({
   phone,
@@ -23,6 +25,7 @@ export default function ForgotPasswordStep({
   error = '',
 }) {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const isDark = theme.isDark !== false;
   const isUsta = actorType === 'worker';
   const isReady = phone.length === 9 && !loading;
@@ -30,7 +33,7 @@ export default function ForgotPasswordStep({
   return (
     <KeyboardAvoidingView
       style={[s.flex, { backgroundColor: theme.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
         contentContainerStyle={s.scroll}
@@ -49,23 +52,25 @@ export default function ForgotPasswordStep({
 
         <View style={s.body}>
           <View style={s.hero}>
-            <View style={[s.orb, isUsta
-              ? { backgroundColor: 'rgba(63,127,212,0.16)' }
-              : { backgroundColor: 'rgba(240,122,48,0.13)' }
-            ]} />
-            <Image
-              source={require('../../../assets/afish-logo-vertical-pro.png')}
-              style={s.logo}
-              resizeMode="contain"
+            <View
+              style={[
+                s.orb,
+                isUsta
+                  ? { backgroundColor: 'rgba(63,127,212,0.16)' }
+                  : { backgroundColor: 'rgba(240,122,48,0.13)' },
+              ]}
             />
-            <Text style={[s.h1, { color: theme.text }]}>Parolni tiklash</Text>
+            <BrandLogo width={280} />
+            <Text style={[s.h1, { color: theme.text }]}>{t('login.forgotPasswordStep.title')}</Text>
             <Text style={[s.sub, { color: theme.muted }]}>
-              Telefon raqamingizni kiriting — tasdiqlash kodini yuboramiz va yangi parol o'rnatasiz.
+              {t('login.forgotPasswordStep.subtitle')}
             </Text>
           </View>
 
           <View style={s.fieldWrap}>
-            <Text style={[s.fieldLabel, { color: theme.muted }]}>Telefon raqami</Text>
+            <Text style={[s.fieldLabel, { color: theme.muted }]}>
+              {t('login.phoneStep.phoneLabel')}
+            </Text>
             <PhoneInput value={phone} onChangeText={onChange} theme={theme} />
           </View>
 
@@ -93,7 +98,9 @@ export default function ForgotPasswordStep({
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <>
-                <Text style={[s.ctaTxt, !isReady && s.ctaTxtDisabled]}>Kod yuborish</Text>
+                <Text style={[s.ctaTxt, !isReady && s.ctaTxtDisabled]}>
+                  {t('login.forgotPasswordStep.sendCode')}
+                </Text>
                 <Feather name="arrow-right" size={18} color={isReady ? '#fff' : '#7a6253'} />
               </>
             )}
@@ -101,12 +108,16 @@ export default function ForgotPasswordStep({
 
           <View style={s.footer}>
             <Text style={[s.terms, { color: theme.muted }]}>
-              Kodni oldingiz — hisobingizga kiring va yangi parol o'rnating.
+              {t('login.forgotPasswordStep.hint')}
             </Text>
             <View style={s.regRow}>
-              <Text style={[s.regHint, { color: theme.muted }]}>Esladingizmi? </Text>
+              <Text style={[s.regHint, { color: theme.muted }]}>
+                {t('login.forgotPasswordStep.rememberedPassword')}
+              </Text>
               <TouchableOpacity onPress={onBack} activeOpacity={0.7}>
-                <Text style={[s.regLink, { color: theme.orange }]}>Kirish</Text>
+                <Text style={[s.regLink, { color: theme.orange }]}>
+                  {t('login.phoneStep.loginCta')}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

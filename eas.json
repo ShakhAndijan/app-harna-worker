@@ -10,19 +10,13 @@
       "android": {
         "buildType": "apk",
         "credentialsSource": "local"
-      },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://dev-back.afish.uz"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk",
-        "credentialsSource": "local"
-      },
-      "env": {
-        "EXPO_PUBLIC_API_URL": "https://dev-back.afish.uz"
+        "credentialsSource": "remote"
       }
     },
     "production": {

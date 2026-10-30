@@ -1,103 +1,165 @@
 import { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import DetailHeader from './usta-detail/DetailHeader';
-import UstaHero from './usta-detail/UstaHero';
-import OnlineStatus from './usta-detail/OnlineStatus';
-import StatsRow from './usta-detail/StatsRow';
-import BadgesRow from './usta-detail/BadgesRow';
-import SpecializationChips from './usta-detail/SpecializationChips';
-import ServicesSection from './usta-detail/ServicesSection';
-import AvailableTimes from './usta-detail/AvailableTimes';
-import CertificatesSection from './usta-detail/CertificatesSection';
-import WorksSection from './usta-detail/WorksSection';
-import RatingSummary from './usta-detail/RatingSummary';
-import ReviewsSection from './usta-detail/ReviewsSection';
-import BottomCta from './usta-detail/BottomCta';
-import { getUstaDetailView } from './usta-detail/view';
-import { C } from './usta-detail/theme';
+import { useLanguage } from '../context/LanguageContext';
+import { UstaStyleProvider, useUstaStyles } from './usta-detail/styles';
+import useUstaDetail from './usta-detail/hooks/useUstaDetail';
+import { pickProfile, buildBadges, buildStatItems, buildSchedule } from './usta-detail/derive';
+import DetailHeader from './usta-detail/components/DetailHeader';
+import ProfileHero from './usta-detail/components/ProfileHero';
+import StatCards from './usta-detail/components/StatCards';
+import BadgeRow from './usta-detail/components/BadgeRow';
+import TrustSection from './usta-detail/components/TrustSection';
+import LanguagesSection from './usta-detail/components/LanguagesSection';
+import SpecializationSection from './usta-detail/components/SpecializationSection';
+import ServicePricesSection from './usta-detail/components/ServicePricesSection';
+import ScheduleSection from './usta-detail/components/ScheduleSection';
+import CertificatesSection from './usta-detail/components/CertificatesSection';
+import WorksSection from './usta-detail/components/WorksSection';
+import ListingsSection from './usta-detail/components/ListingsSection';
+import RatingSection from './usta-detail/components/RatingSection';
+import ReviewsSection from './usta-detail/components/ReviewsSection';
+import BottomCta from './usta-detail/components/BottomCta';
 
-export default function UstaDetailScreen({
+// Usta profili ekrani. Har bir bo'lim `usta-detail/components/` ichida alohida komponent;
+// ma'lumot `hooks/useUstaDetail`, hisob-kitoblar `derive.js` da.
+export default function UstaDetailScreen(props) {
+  return (
+    <UstaStyleProvider>
+      <UstaDetailContent {...props} />
+    </UstaStyleProvider>
+  );
+}
+
+function UstaDetailContent({
   usta,
   onBack,
   onGoToLogin,
+  onOrderWorker,
+  onSelectWork,
   isLoggedIn = false,
 }) {
   const insets = useSafeAreaInsets();
+  const { t: tr } = useLanguage();
+  const { C, st } = useUstaStyles();
+
   const [reviewFilter, setReviewFilter] = useState('all');
-  const [selectedSpec, setSelectedSpec] = useState(null);
 
   const {
-    initial,
-    name,
-    trade,
-    rating,
-    jobs,
-    bgColor,
-    location,
-    experience,
-    repeatRate,
-    reviewCount,
-    startingPrice,
-    specs,
-    specServices,
-    specTimes,
-    specCerts,
-    specWorks,
-    bars,
-    ratingValue,
-    ratingCount,
-    shownReviews,
-  } = getUstaDetailView(usta, { selectedSpec, reviewFilter });
+    detail,
+    loadingDetail,
+    certificates,
+    loadingCertificates,
+    selectedCategoryId,
+    setSelectedCategoryId,
+    liked,
+    toggleLike,
+  } = useUstaDetail(usta);
+
+  const profile = pickProfile({ detail, usta, C, tr });
+  const { d, initial, name, trade, rating, rawRating, bgColor, location, experience, bio } =
+    profile;
+
+  const categories = detail?.categories || [];
+  const portfolio = detail?.portfolio || [];
+  const reviewItems = portfolio.filter((p) => p.comment || p.rating != null);
+  const { weekDays, workHours, offDates } = buildSchedule(detail?.schedule || null);
+
+  const handleOrderThisWorker = () => {
+    const workerId = usta?.id ?? detail?.id;
+    if (!workerId) return;
+    onOrderWorker?.({
+      id: workerId,
+      name,
+      trade,
+      bgColor,
+      initial,
+      categoryId: selectedCategoryId ?? detail?.mainCategoryId ?? null,
+    });
+  };
 
   return (
     <SafeAreaView style={st.safe} edges={['top', 'left', 'right']}>
       <StatusBar style="light" />
 
-      <DetailHeader name={name} trade={trade} rating={rating} onBack={onBack} isLoggedIn={isLoggedIn} />
+      <DetailHeader
+        onBack={onBack}
+        workerId={usta?.id ?? detail?.id}
+        shareInfo={{ name, trade, rating }}
+        isLoggedIn={isLoggedIn}
+        liked={liked}
+        onToggleLike={toggleLike}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingBottom: Math.max(insets.bottom, 14) + 76,
-        }}
+        contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 14) + 76 }}
       >
-        {/* ═══ Padded content block 1 ═══ */}
         <View style={st.pad}>
-          <UstaHero initial={initial} bgColor={bgColor} name={name} trade={trade} location={location} rating={rating} reviewCount={reviewCount} />
-
-          {isLoggedIn && <OnlineStatus />}
-
-          <StatsRow jobs={jobs} experience={experience} repeatRate={repeatRate} />
-
-          <BadgesRow />
-
-          <SpecializationChips specs={specs} selectedSpec={selectedSpec} onSelect={setSelectedSpec} />
-
-          <ServicesSection services={specServices} />
-
-          {isLoggedIn && <AvailableTimes times={specTimes} />}
-
-          <CertificatesSection certs={specCerts} />
+          <ProfileHero
+            initial={initial}
+            name={name}
+            trade={trade}
+            location={location}
+            rating={rating}
+            bgColor={bgColor}
+            photo={d.profile_photo}
+            bio={bio}
+            isOnline={profile.isOnline}
+            isIdentityVerified={!!detail?.isIdentityVerified}
+            avgResponseMin={detail?.avgResponseMin}
+            showLoader={loadingDetail && !detail}
+          />
+          <StatCards items={buildStatItems({ d, experience, detail, portfolio, tr, C })} />
+          <BadgeRow badges={buildBadges(d, tr, C)} />
+          <TrustSection detail={detail} />
+          <LanguagesSection languages={profile.languages} />
+          <SpecializationSection
+            categories={categories}
+            selectedId={selectedCategoryId}
+            onSelect={setSelectedCategoryId}
+            loading={loadingDetail}
+          />
+          <ServicePricesSection
+            categories={categories}
+            selectedId={selectedCategoryId}
+            loading={loadingDetail}
+          />
+          {isLoggedIn && (
+            <ScheduleSection weekDays={weekDays} workHours={workHours} offDates={offDates} />
+          )}
+          <CertificatesSection certificates={certificates} loading={loadingCertificates} />
         </View>
 
-        <WorksSection works={specWorks} />
+        <WorksSection
+          portfolio={portfolio}
+          loading={loadingDetail}
+          onSelectWork={(work) => onSelectWork?.({ ...work, worker: name })}
+        />
 
-        {/* ═══ Padded content block 2 ═══ */}
+        <ListingsSection workerId={usta?.id ?? detail?.id} />
+
         <View style={st.pad}>
-          <RatingSummary ratingValue={ratingValue} ratingCount={ratingCount} bars={bars} />
-
-          <ReviewsSection reviews={shownReviews} filter={reviewFilter} onFilterChange={setReviewFilter} />
+          <RatingSection
+            rating={rating}
+            rawRating={rawRating}
+            reviewCount={detail?.reviewCount ?? 0}
+            reviewItemsCount={reviewItems.length}
+            ratingBreakdown={detail?.ratingBreakdown ?? null}
+          />
+          <ReviewsSection
+            reviewItems={reviewItems}
+            filter={reviewFilter}
+            onFilterChange={setReviewFilter}
+          />
         </View>
       </ScrollView>
 
-      <BottomCta startingPrice={startingPrice} isLoggedIn={isLoggedIn} onGoToLogin={onGoToLogin} />
+      <BottomCta
+        price={profile.startingPrice}
+        onPress={isLoggedIn ? handleOrderThisWorker : onGoToLogin}
+      />
     </SafeAreaView>
   );
 }
-
-const st = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: C.bg },
-  pad: { paddingHorizontal: 20 },
-});

@@ -1,24 +1,20 @@
-export const MONTH_NAMES_UZ = [
-  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
-  'Iyul', 'Avgust', 'Sentabr', 'Oktabr', 'Noyabr', 'Dekabr',
-];
+// "{n} yil" — tilga mos qo'shimcha: `common.years` satr (uz) yoki ko'plik shakllari
+// massivi (en: [bir, ko'p], ru: [1 год, 2 года, 5 лет]) bo'lishi mumkin.
+export function formatYears(tr, n) {
+  const forms = tr('common.years');
+  let form = forms;
+  if (Array.isArray(forms)) {
+    if (forms.length === 2) {
+      form = forms[n === 1 ? 0 : 1];
+    } else {
+      const m10 = n % 10;
+      const m100 = n % 100;
+      const i = m10 === 1 && m100 !== 11 ? 0 : m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20) ? 1 : 2;
+      form = forms[i];
+    }
+  }
+  return String(form).replace('{n}', n);
+}
 
-export const pad2 = (n) => String(n).padStart(2, '0');
-
-export const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
-
-/** 1234567 → "1 234 567" */
+// 1234567 → "1 234 567"
 export const formatNumber = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-
-/** Pul miqdori: butun so'mgacha yaxlitlab, minglik oralig'i bilan. */
-export const formatAmount = (n) => formatNumber(Math.round(n));
-
-/** "901234567" → "90 123 45 67" (faqat 9 ta raqamgacha) */
-export const formatPhone = (raw = '') => {
-  const d = raw.replace(/\D/g, '').slice(0, 9);
-  let out = d.slice(0, 2);
-  if (d.length > 2) out += ' ' + d.slice(2, 5);
-  if (d.length > 5) out += ' ' + d.slice(5, 7);
-  if (d.length > 7) out += ' ' + d.slice(7, 9);
-  return out;
-};

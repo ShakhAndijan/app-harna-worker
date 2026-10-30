@@ -1,66 +1,21 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Linking,
-} from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useFaq } from '../queries/support';
+import { FAQ_ITEMS } from '../i18n/siteTexts';
+import { SUPPORT_CONTACT } from '../constants/config';
+import { documentRoute, supportRoute } from '../navigation/params';
+import useBottomInset from '../hooks/useBottomInset';
 
-const FAQ = [
-  {
-    q: 'Buyurtmani qanday bekor qilaman?',
-    a: "Buyurtmalar bo'limidan kerakli buyurtmani oching va \"Bekor qilish\" tugmasini bosing. Usta yo'lga chiqmagan bo'lsa bepul.",
-  },
-  {
-    q: 'Pul qaytarish qancha vaqt oladi?',
-    a: "To'lov bekor qilinganda mablag' 1–3 ish kuni ichida hamyoningizga yoki kartangizga qaytariladi.",
-  },
-  {
-    q: 'Usta belgilangan vaqtda kelmadi',
-    a: 'Buyurtma sahifasidagi chat orqali usta bilan bog\'laning yoki "Shikoyat" tugmasi orqali bizga xabar bering.',
-  },
-];
-
-const CONTACTS = [
-  {
-    icon: 'message-text',
-    bg: '#e87a45',
-    title: 'Jonli chat',
-    sub: "Eng tez yo'l",
-    badge: 'Onlayn',
-  },
-  {
-    icon: 'phone',
-    bg: '#2fa37a',
-    title: "Qo'ng'iroq",
-    sub: '+998 95 023 99 22',
-    onPress: () => Linking.openURL('tel:+998950239922'),
-  },
-  {
-    icon: 'send',
-    bg: '#2aabee',
-    title: 'Telegram',
-    sub: '@Shakhzodbek_AA',
-    onPress: () => Linking.openURL('https://t.me/Shakhzodbek_AA'),
-  },
-  {
-    icon: 'email-outline',
-    bg: '#3f7fd4',
-    title: 'Email',
-    sub: 'shakhandijan@gmail.com',
-    onPress: () => Linking.openURL('mailto:shakhandijan@gmail.com'),
-  },
-];
+const DOCS = ['about', 'terms', 'privacy'];
 
 function FaqItem({ item, isOpen, onToggle }) {
   const { theme: t } = useTheme();
-  const [liked, setLiked] = useState(null);
 
   return (
     <View>
@@ -73,65 +28,24 @@ function FaqItem({ item, isOpen, onToggle }) {
         />
       </TouchableOpacity>
       {isOpen && (
-        <View
-          style={[s.faqBody, { borderTopWidth: 1, borderTopColor: t.border }]}
-        >
+        <View style={[s.faqBody, { borderTopWidth: 1, borderTopColor: t.border }]}>
           <Text style={[s.faqA, { color: t.muted }]}>{item.a}</Text>
-          <View style={s.feedbackRow}>
-            <Text style={{ fontSize: 11.5, color: t.faint, flex: 1 }}>
-              Foydali bo'ldimi?
-            </Text>
-            <TouchableOpacity
-              style={[
-                s.feedbackBtn,
-                {
-                  backgroundColor:
-                    liked === true ? 'rgba(47,163,122,0.2)' : t.inputBg,
-                },
-              ]}
-              onPress={() => setLiked(liked === true ? null : true)}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons
-                name="thumb-up-outline"
-                size={14}
-                color={liked === true ? '#2fa37a' : t.faint}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                s.feedbackBtn,
-                {
-                  backgroundColor:
-                    liked === false ? 'rgba(224,71,58,0.15)' : t.inputBg,
-                },
-              ]}
-              onPress={() => setLiked(liked === false ? null : false)}
-              activeOpacity={0.8}
-            >
-              <MaterialCommunityIcons
-                name="thumb-down-outline"
-                size={14}
-                color={liked === false ? '#e0473a' : t.faint}
-              />
-            </TouchableOpacity>
-          </View>
         </View>
       )}
     </View>
   );
 }
 
-function FaqAccordion() {
+// Savollar saytdagi bilan bir xil: backenddagi (/faq) ro'yxat, u bo'sh yoki yuklanmasa — ilovadagi
+// zaxira matnlar (uz/ru/en).
+function FaqAccordion({ items }) {
   const { theme: t } = useTheme();
   const [openIdx, setOpenIdx] = useState(0);
 
   return (
-    <View
-      style={[s.faqCard, { backgroundColor: t.card, borderColor: t.border }]}
-    >
-      {FAQ.map((item, i) => (
-        <View key={i}>
+    <View style={[s.faqCard, { backgroundColor: t.card, borderColor: t.border }]}>
+      {items.map((item, i) => (
+        <View key={item.id ?? i}>
           {i > 0 && <View style={{ height: 1, backgroundColor: t.border }} />}
           <FaqItem
             item={item}
@@ -145,37 +59,90 @@ function FaqAccordion() {
 }
 
 export default function ZakazchiHelpScreen({ onBack }) {
+  const bottomInset = useBottomInset();
+  const router = useRouter();
   const { theme: t } = useTheme();
+  const { language, t: tr } = useLanguage();
+  const faq = useFaq();
+  const faqItems = faq.data ?? FAQ_ITEMS[language] ?? FAQ_ITEMS.uz;
+
+  const contacts = [
+    {
+      key: 'chat',
+      icon: 'message-text',
+      bg: '#e87a45',
+      sub: tr('help.chatSub'),
+      onPress: () => router.push('/support-chat'),
+    },
+    ...(SUPPORT_CONTACT.phone
+      ? [
+          {
+            key: 'call',
+            icon: 'phone',
+            bg: '#2fa37a',
+            sub: SUPPORT_CONTACT.phone,
+            onPress: () => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`),
+          },
+        ]
+      : []),
+    ...(SUPPORT_CONTACT.telegram
+      ? [
+          {
+            key: 'telegram',
+            icon: 'send',
+            bg: '#2aabee',
+            sub: SUPPORT_CONTACT.telegram,
+            onPress: () =>
+              Linking.openURL(`https://t.me/${SUPPORT_CONTACT.telegram.replace(/^@/, '')}`),
+          },
+        ]
+      : []),
+    ...(SUPPORT_CONTACT.email
+      ? [
+          {
+            key: 'email',
+            icon: 'email-outline',
+            bg: '#3f7fd4',
+            sub: SUPPORT_CONTACT.email,
+            onPress: () => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}`),
+          },
+        ]
+      : []),
+    {
+      key: 'question',
+      icon: 'help-circle-outline',
+      bg: '#8a6fd8',
+      sub: tr('support.contactHint'),
+      onPress: () => router.push(supportRoute('question')),
+    },
+    {
+      key: 'suggestion',
+      icon: 'lightbulb-outline',
+      bg: '#d9a21b',
+      sub: tr('support.suggestionHint'),
+      onPress: () => router.push(supportRoute('suggestion')),
+    },
+  ];
 
   return (
-    <SafeAreaView
-      style={{ flex: 1, backgroundColor: t.bg }}
-      edges={['top', 'left', 'right']}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
       <StatusBar style={t.isDark ? 'light' : 'dark'} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 40 + bottomInset }}
       >
         {/* ── Header ── */}
         <View style={s.header}>
           <TouchableOpacity
-            style={[
-              s.backBtn,
-              { backgroundColor: t.card, borderColor: t.border },
-            ]}
+            style={[s.backBtn, { backgroundColor: t.card, borderColor: t.border }]}
             onPress={onBack}
             activeOpacity={0.8}
           >
-            <MaterialCommunityIcons
-              name="chevron-left"
-              size={22}
-              color={t.text}
-            />
+            <MaterialCommunityIcons name="chevron-left" size={22} color={t.text} />
           </TouchableOpacity>
           <Text style={{ fontWeight: '700', fontSize: 20, color: t.text }}>
-            Yordam markazi
+            {tr('profile.settings.helpCenter')}
           </Text>
         </View>
 
@@ -190,7 +157,7 @@ export default function ZakazchiHelpScreen({ onBack }) {
               />
             </View>
             <Text style={{ fontWeight: '700', fontSize: 19, color: '#fff' }}>
-              Sizga qanday yordam beramiz?
+              {tr('help.heroTitle')}
             </Text>
             <Text
               style={{
@@ -200,45 +167,31 @@ export default function ZakazchiHelpScreen({ onBack }) {
                 maxWidth: 220,
               }}
             >
-              Operatorlar 24/7 onlayn · o'rtacha 2 daqiqada javob beramiz
+              {tr('help.heroSubtitle')}
             </Text>
           </View>
         </View>
 
         {/* ── Bog'lanish kanallari ── */}
         <View style={{ paddingHorizontal: 20, marginTop: 18, gap: 11 }}>
-          {CONTACTS.map((item, i) => (
+          {contacts.map((item) => (
             <TouchableOpacity
-              key={i}
-              style={[
-                s.contactRow,
-                { backgroundColor: t.card, borderColor: t.border },
-              ]}
+              key={item.key}
+              style={[s.contactRow, { backgroundColor: t.card, borderColor: t.border }]}
               activeOpacity={0.8}
               onPress={item.onPress}
             >
               <View style={[s.contactIcon, { backgroundColor: item.bg }]}>
-                <MaterialCommunityIcons
-                  name={item.icon}
-                  size={22}
-                  color="#fff"
-                />
+                <MaterialCommunityIcons name={item.icon} size={22} color="#fff" />
               </View>
               <View style={{ flex: 1, marginLeft: 13 }}>
-                <Text
-                  style={{ fontWeight: '700', fontSize: 14, color: t.text }}
-                >
-                  {item.title}
+                <Text style={{ fontWeight: '700', fontSize: 14, color: t.text }}>
+                  {item.key === 'telegram' ? 'Telegram' : tr(`help.contacts.${item.key}`)}
                 </Text>
-                <Text style={{ fontSize: 11.5, color: t.muted, marginTop: 2 }}>
+                <Text style={{ fontSize: 11.5, color: t.muted, marginTop: 2 }} numberOfLines={2}>
                   {item.sub}
                 </Text>
               </View>
-              {item.badge && (
-                <View style={s.badge}>
-                  <Text style={s.badgeTxt}>{item.badge}</Text>
-                </View>
-              )}
               <MaterialCommunityIcons
                 name="chevron-right"
                 size={18}
@@ -251,17 +204,50 @@ export default function ZakazchiHelpScreen({ onBack }) {
 
         {/* ── Tez-tez so'raladi ── */}
         <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-          <Text
-            style={{
-              fontWeight: '700',
-              fontSize: 15,
-              color: t.text,
-              marginBottom: 12,
-            }}
-          >
-            Tez-tez so'raladi
+          <Text style={{ fontWeight: '700', fontSize: 15, color: t.text, marginBottom: 12 }}>
+            {tr('help.faqTitle')}
           </Text>
-          <FaqAccordion />
+          <FaqAccordion items={faqItems} />
+
+          <View style={[s.notFound, { backgroundColor: t.card, borderColor: t.border }]}>
+            <Text style={{ fontWeight: '700', fontSize: 14, color: t.text }}>
+              {tr('support.faqNotFoundTitle')}
+            </Text>
+            <Text style={{ fontSize: 12.5, color: t.muted, marginTop: 2 }}>
+              {tr('support.faqNotFoundHint')}
+            </Text>
+            <TouchableOpacity
+              style={[s.notFoundBtn, { backgroundColor: t.orange }]}
+              activeOpacity={0.85}
+              onPress={() => router.push(supportRoute('question'))}
+            >
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
+                {tr('help.contacts.question')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── Hujjatlar ── */}
+        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
+          <Text style={{ fontWeight: '700', fontSize: 15, color: t.text, marginBottom: 12 }}>
+            {tr('support.legal')}
+          </Text>
+          <View style={[s.faqCard, { backgroundColor: t.card, borderColor: t.border }]}>
+            {DOCS.map((key, i) => (
+              <View key={key}>
+                {i > 0 && <View style={{ height: 1, backgroundColor: t.border }} />}
+                <TouchableOpacity
+                  style={s.faqRow}
+                  activeOpacity={0.7}
+                  onPress={() => router.push(documentRoute(key))}
+                >
+                  <Text style={[s.faqQ, { color: t.text, flex: 1 }]}>{tr(`support.${key}`)}</Text>
+                  <MaterialCommunityIcons name="chevron-right" size={18} color={t.faint} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -313,13 +299,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
-    backgroundColor: 'rgba(47,163,122,0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  badgeTxt: { fontSize: 10, fontWeight: '700', color: '#2fa37a' },
 
   faqCard: { borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
   faqRow: {
@@ -332,17 +311,12 @@ const s = StyleSheet.create({
   faqQ: { fontWeight: '600', fontSize: 13.8 },
   faqBody: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 },
   faqA: { fontSize: 13, lineHeight: 20 },
-  feedbackRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 12,
-  },
-  feedbackBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+  notFound: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 14 },
+  notFoundBtn: {
+    height: 46,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 12,
   },
 });

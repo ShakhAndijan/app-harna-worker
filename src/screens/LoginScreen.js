@@ -1,44 +1,42 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, Alert } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { appAlert } from '../components/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import {
   googleLogin,
+  loginCustomer,
+  startCustomerAuth,
+  verifyCustomerAuth,
+  completeCustomerAuth,
   loginWorker,
-  authStart,
-  authVerify,
-  authComplete,
-  getTelegramConfig,
-  telegramVerify,
+  startWorkerAuth,
+  verifyWorkerAuth,
+  completeWorkerAuth,
   requestResetPasswordOtp,
   verifyResetPasswordOtp,
 } from '../api/auth';
-import { saveSession } from '../utils/token';
-import PhoneOtpStep from './steps/PhoneOtpStep';
+import { saveSession, saveActorType } from '../utils/token';
+import { buildIdentifier } from '../utils/identifier';
 import PhoneStep from './steps/PhoneStep';
+import PasswordStep from './steps/PasswordStep';
 import ForgotPasswordStep from './steps/ForgotPasswordStep';
 import CodeStep from './steps/CodeStep';
 import NewPasswordStep from './steps/NewPasswordStep';
-import TelegramLoginModal from './steps/TelegramLoginModal';
-import WorkerRegisterStep from './steps/WorkerRegisterStep';
+import CompleteProfileStep from './steps/CompleteProfileStep';
+import { devLog } from '../utils/log';
+import { getErrorMessage } from '../utils/errors';
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ onBack, onLoginSuccess }) {
   const { theme } = useTheme();
+  const { t } = useLanguage();
   const [step, setStep] = useState('phone');
-  const [identifierMode, setIdentifierMode] = useState('idle');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
-  const [otpRequestError, setOtpRequestError] = useState('');
-  const [otpDevCode, setOtpDevCode] = useState('');
-  const [otpResendLoading, setOtpResendLoading] = useState(false);
-  const [otpConfirmLoading, setOtpConfirmLoading] = useState(false);
-  const [otpConfirmError, setOtpConfirmError] = useState('');
-  const [ticket, setTicket] = useState('');
   const [forgotPhone, setForgotPhone] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState('');
@@ -47,130 +45,106 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
   const [forgotCode, setForgotCode] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-  const [actorType] = useState('worker');
+  // 'customer' (mijoz) yoki 'worker' (usta) — kirish ekranidagi havola bilan almashadi.
+  const [actorType, setActorType] = useState('customer');
+  const isWorker = actorType === 'worker';
+  const api = isWorker
+    ? {
+        login: loginWorker,
+        start: startWorkerAuth,
+        verify: verifyWorkerAuth,
+        complete: completeWorkerAuth,
+      }
+    : {
+        login: loginCustomer,
+        start: startCustomerAuth,
+        verify: verifyCustomerAuth,
+        complete: completeCustomerAuth,
+      };
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [telegramBotUsername, setTelegramBotUsername] = useState('');
-  const [telegramEnabled, setTelegramEnabled] = useState(false);
-  const [telegramConfigLoading, setTelegramConfigLoading] = useState(true);
-  const [telegramModalVisible, setTelegramModalVisible] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const cfg = await getTelegramConfig();
-        setTelegramEnabled(!!cfg?.enabled);
-        setTelegramBotUsername(cfg?.bot_username || '');
-      } catch (e) {
-        setTelegramEnabled(false);
-      } finally {
-        setTelegramConfigLoading(false);
-      }
-    })();
-  }, []);
+  // ── Telefon + OTP (login va register birlashgan oqimi: start → verify → complete) ──
+  const [identifier, setIdentifier] = useState('');
+  // Kirish usuli: telefon yoki qo'lda yoziladigan email.
+  const [identifierMode, setIdentifierMode] = useState('phone');
+  const [ticket, setTicket] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpChannel, setOtpChannel] = useState('sms');
+  const [otpError, setOtpError] = useState('');
+  const [devCode, setDevCode] = useState('');
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+  const [completeLoading, setCompleteLoading] = useState(false);
+  const [completeError, setCompleteError] = useState('');
 
-  const fullPhone = () => '+998' + phone.replace(/\D/g, '');
-  const identifier = () => (identifierMode === 'email' ? email.trim() : fullPhone());
+  const finishLogin = async (data) => {
+    if (data?.access_token) {
+      await saveSession({ accessToken: data.access_token, refreshToken: data.refresh_token });
+    }
+    await saveActorType(actorType);
+    (onLoginSuccess ?? onBack)(actorType);
+  };
 
-  const handleRequestOtp = async () => {
-    const channel = identifierMode === 'email' ? null : 'sms';
+  const handleRequestOtp = async (channel = 'sms') => {
     try {
+      setOtpChannel(channel);
       setOtpLoading(true);
-      setOtpRequestError('');
-      const data = await authStart(identifier(), channel, actorType);
-      setOtpDevCode(data?.dev_code || '');
+      setOtpError('');
+      setVerifyError('');
+      const data = await api.start(buildIdentifier(identifier, identifierMode), channel);
+      setDevCode(data?.dev_code || '');
       setStep('code');
     } catch (e) {
-      setOtpRequestError(e.message || 'Kod yuborishda xatolik yuz berdi');
+      setOtpError(getErrorMessage(e, t, 'login.errors.sendCodeFailed'));
     } finally {
       setOtpLoading(false);
     }
   };
 
-  const handleResendOtp = async () => {
-    const channel = identifierMode === 'email' ? null : 'sms';
+  const handleVerifyOtp = async (code) => {
     try {
-      setOtpResendLoading(true);
-      setOtpConfirmError('');
-      const data = await authStart(identifier(), channel, actorType);
-      setOtpDevCode(data?.dev_code || '');
-    } catch (e) {
-      Alert.alert('Xato', e.message || 'Kod yuborishda xatolik yuz berdi');
-    } finally {
-      setOtpResendLoading(false);
-    }
-  };
-
-  const handleTelegramPress = () => {
-    if (!telegramBotUsername) return;
-    setTelegramModalVisible(true);
-  };
-
-  const handleTelegramAuth = async (widgetData) => {
-    try {
-      const data = await telegramVerify(actorType, widgetData);
-      const finalActorType = data?.actor_type || actorType;
-      await saveSession({
-        accessToken: data?.access_token,
-        refreshToken: data?.refresh_token,
-        actorType: finalActorType,
-      });
-      setTelegramModalVisible(false);
-      (onLoginSuccess ?? onBack)(finalActorType);
-    } catch (e) {
-      setTelegramModalVisible(false);
-      Alert.alert('Xato', e.message || 'Telegram orqali kirishda xatolik');
-    }
-  };
-
-  const handleConfirmOtp = async (code) => {
-    try {
-      setOtpConfirmLoading(true);
-      setOtpConfirmError('');
-      const data = await authVerify(identifier(), code, actorType);
-      if (data?.status === 'signed_in') {
-        await saveSession({
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token,
-          actorType,
-        });
-        (onLoginSuccess ?? onBack)(actorType);
-        return;
-      }
-
-      // Hisob hali yakunlanmagan — faqat ikkita holat bor: (1) ism-familiya
-      // allaqachon ma'lum (raqam avval boshqa ko'rinishda ro'yxatdan o'tgan)
-      // -> so'ramasdan to'g'ridan-to'g'ri "complete"ga yuboramiz; (2) mutlaqo
-      // yangi hisob -> foydalanuvchidan so'raymiz. Claim endpointi
-      // ishlatilmaydi.
-      if (data?.suggested_first_name && data?.suggested_last_name) {
-        const resp = await authComplete(
-          data.ticket,
+      setVerifyLoading(true);
+      setVerifyError('');
+      const data = await api.verify(buildIdentifier(identifier, identifierMode), code);
+      devLog('[login] verify status:', data?.status);
+      if (data?.access_token) {
+        await finishLogin(data);
+      } else if (data?.suggested_first_name && data?.suggested_last_name) {
+        // Ism-familiya boshqa hisobdan (masalan usta sifatida avval ro'yxatdan
+        // o'tgan bo'lsa) allaqachon ma'lum — foydalanuvchidan qayta so'ramasdan
+        // avtomatik /complete chaqirib kirgazamiz.
+        const completed = await api.complete(
+          data?.ticket || '',
           data.suggested_first_name,
-          data.suggested_last_name,
-          actorType
+          data.suggested_last_name
         );
-        await saveSession({
-          accessToken: resp?.access_token,
-          refreshToken: resp?.refresh_token,
-          actorType,
-        });
-        (onLoginSuccess ?? onBack)(actorType);
-        return;
+        await finishLogin(completed);
+      } else if (data?.status === 'needs_name') {
+        setTicket(data?.ticket || '');
+        setCompleteError('');
+        setStep('completeProfile');
+      } else {
+        setVerifyError(t('login.errors.loginFailed'));
       }
-
-      if (data?.ticket) {
-        setTicket(data.ticket);
-        setStep('register');
-        return;
-      }
-
-      setOtpConfirmError('Kutilmagan javob qaytdi');
     } catch (e) {
-      setOtpConfirmError(e.message || 'Tasdiqlashda xatolik yuz berdi');
+      setVerifyError(getErrorMessage(e, t, 'login.errors.loginFailed'));
     } finally {
-      setOtpConfirmLoading(false);
+      setVerifyLoading(false);
+    }
+  };
+
+  const handleCompleteProfile = async (firstName, lastName) => {
+    try {
+      setCompleteLoading(true);
+      setCompleteError('');
+      const data = await api.complete(ticket, firstName, lastName);
+      await finishLogin(data);
+    } catch (e) {
+      setCompleteError(getErrorMessage(e, t, 'login.registerStep.errors.finishFailed'));
+    } finally {
+      setCompleteLoading(false);
     }
   };
 
@@ -178,15 +152,11 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setLoginLoading(true);
       setLoginError('');
-      const data = await loginWorker(fullPhone(), password);
-      await saveSession({
-        accessToken: data?.access_token,
-        refreshToken: data?.refresh_token,
-        actorType,
-      });
-      (onLoginSuccess ?? onBack)(actorType);
+      const fullPhone = '+998' + phone.replace(/\D/g, '');
+      const data = await api.login(fullPhone, password);
+      await finishLogin(data);
     } catch (e) {
-      setLoginError(e.message || 'Kirishda xatolik yuz berdi');
+      setLoginError(getErrorMessage(e, t, 'login.errors.loginFailed'));
     } finally {
       setLoginLoading(false);
     }
@@ -197,11 +167,11 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       setForgotLoading(true);
       setForgotError('');
       const fullPhone = '+998' + forgotPhone.replace(/\D/g, '');
-      const data = await requestResetPasswordOtp(fullPhone);
+      const data = await requestResetPasswordOtp(fullPhone, actorType);
       setForgotDevCode(data?.dev_code || '');
       setStep('forgotCode');
     } catch (e) {
-      setForgotError(e.message || 'Kod yuborishda xatolik yuz berdi');
+      setForgotError(getErrorMessage(e, t, 'login.errors.sendCodeFailed'));
     } finally {
       setForgotLoading(false);
     }
@@ -211,10 +181,10 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setForgotResendLoading(true);
       const fullPhone = '+998' + forgotPhone.replace(/\D/g, '');
-      const data = await requestResetPasswordOtp(fullPhone);
+      const data = await requestResetPasswordOtp(fullPhone, actorType);
       setForgotDevCode(data?.dev_code || '');
     } catch (e) {
-      Alert.alert('Xato', e.message || 'Kod yuborishda xatolik yuz berdi');
+      appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'login.errors.sendCodeFailed'));
     } finally {
       setForgotResendLoading(false);
     }
@@ -225,15 +195,11 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       setResetLoading(true);
       setResetError('');
       const fullPhone = '+998' + forgotPhone.replace(/\D/g, '');
-      const data = await verifyResetPasswordOtp(
-        fullPhone,
-        forgotCode,
-        newPassword
-      );
+      const data = await verifyResetPasswordOtp(fullPhone, forgotCode, newPassword, actorType);
       setStep('phone');
       return data;
     } catch (e) {
-      setResetError(e.message || 'Parolni saqlashda xatolik yuz berdi');
+      setResetError(getErrorMessage(e, t, 'login.errors.savePasswordFailed'));
     } finally {
       setResetLoading(false);
     }
@@ -243,93 +209,91 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setGoogleLoading(true);
       const { token, refreshToken } = await googleLogin(actorType);
-      await saveSession({ accessToken: token, refreshToken, actorType });
-      (onLoginSuccess ?? onBack)(actorType);
+      await finishLogin({ access_token: token, refresh_token: refreshToken });
     } catch (e) {
       if (e.message !== 'cancelled') {
-        Alert.alert('Xato', e.message || 'Google orqali kirishda xatolik');
+        appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'login.errors.googleFailed'));
       }
     } finally {
       setGoogleLoading(false);
     }
   };
 
-  const showTelegram = telegramEnabled && !!telegramBotUsername;
-
   const steps = {
     phone: (
-      <PhoneOtpStep
-        identifierMode={identifierMode}
-        onChangeIdentifierMode={(m) => {
+      <PhoneStep
+        identifier={identifier}
+        mode={identifierMode}
+        onModeChange={(m) => {
           setIdentifierMode(m);
-          setOtpRequestError('');
+          setIdentifier('');
+          setOtpError('');
         }}
-        phone={phone}
-        onChangePhone={(v) => {
-          setPhone(v);
-          setOtpRequestError('');
+        onIdentifierChange={(v) => {
+          setIdentifier(v);
+          setOtpError('');
         }}
-        email={email}
-        onChangeEmail={(v) => {
-          setEmail(v);
-          setOtpRequestError('');
-        }}
-        onContinue={handleRequestOtp}
-        loading={otpLoading}
-        error={otpRequestError}
-        onAltLogin={() => setStep('altLogin')}
+        onRequestOtp={handleRequestOtp}
+        loginLoading={otpLoading && otpChannel === 'sms'}
+        telegramLoading={otpLoading && otpChannel === 'telegram'}
+        error={otpError}
         onBack={onBack}
         onGoogle={handleGoogle}
         googleLoading={googleLoading}
-        onTelegram={handleTelegramPress}
-        telegramLoading={telegramConfigLoading}
-        showTelegram={showTelegram}
+        actorType={actorType}
+        onSwitchActor={() => {
+          setActorType(isWorker ? 'customer' : 'worker');
+          setOtpError('');
+        }}
       />
     ),
     code: (
       <CodeStep
-        phone={identifierMode === 'email' ? '' : phone}
-        email={identifierMode === 'email' ? email.trim() : ''}
-        devCode={otpDevCode}
-        onBack={() => {
-          setOtpConfirmError('');
-          setStep('phone');
-        }}
-        onConfirm={handleConfirmOtp}
-        onChangeCode={() => setOtpConfirmError('')}
-        onResend={handleResendOtp}
-        resendLoading={otpResendLoading}
-        confirmLoading={otpConfirmLoading}
-        error={otpConfirmError}
+        phone={identifierMode === 'phone' ? identifier : undefined}
+        email={identifierMode === 'email' ? identifier : undefined}
+        devCode={devCode}
+        onBack={() => setStep('phone')}
+        onConfirm={handleVerifyOtp}
+        confirmLoading={verifyLoading}
+        error={verifyError}
+        resendError={otpError}
+        onResend={() => handleRequestOtp(otpChannel)}
+        resendLoading={otpLoading}
+        onAltLogin={
+          identifierMode === 'phone'
+            ? () => {
+                setPhone(identifier);
+                setStep('password');
+              }
+            : undefined
+        }
       />
     ),
-    altLogin: (
-      <PhoneStep
-        phone={phone}
-        onChange={(v) => {
-          setPhone(v);
-          setLoginError('');
-        }}
+    password: (
+      <PasswordStep
+        identifier={phone}
         password={password}
         onPasswordChange={(v) => {
           setPassword(v);
           setLoginError('');
         }}
         onLogin={handleLogin}
-        loginLoading={loginLoading}
+        loading={loginLoading}
         error={loginError}
         onForgot={() => {
           setForgotPhone(phone);
           setStep('forgot');
         }}
-        onBack={() => setStep('phone')}
-        onGoogle={handleGoogle}
-        googleLoading={googleLoading}
-        onTelegram={handleTelegramPress}
-        telegramLoading={telegramConfigLoading}
-        showTelegram={showTelegram}
-        onRegister={() => setStep('phone')}
-        actorType={actorType}
+        onBack={() => setStep('code')}
+      />
+    ),
+    completeProfile: (
+      <CompleteProfileStep
+        identifier={identifier}
+        onBack={() => setStep('code')}
+        onSubmit={handleCompleteProfile}
+        loading={completeLoading}
+        error={completeError}
       />
     ),
     forgot: (
@@ -342,7 +306,7 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
         onSubmit={handleForgotSubmit}
         loading={forgotLoading}
         error={forgotError}
-        onBack={() => setStep('altLogin')}
+        onBack={() => setStep('phone')}
         actorType={actorType}
       />
     ),
@@ -368,16 +332,6 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
         error={resetError}
       />
     ),
-    register: (
-      <WorkerRegisterStep
-        ticket={ticket}
-        onBack={() => {
-          setTicket('');
-          setStep('phone');
-        }}
-        onDone={() => (onLoginSuccess ?? onBack)('worker')}
-      />
-    ),
   };
 
   return (
@@ -386,13 +340,6 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       edges={['top', 'left', 'right', 'bottom']}
     >
       {steps[step]}
-      <TelegramLoginModal
-        visible={telegramModalVisible}
-        botUsername={telegramBotUsername}
-        loading={telegramConfigLoading}
-        onClose={() => setTelegramModalVisible(false)}
-        onAuth={handleTelegramAuth}
-      />
     </SafeAreaView>
   );
 }

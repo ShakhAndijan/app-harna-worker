@@ -42,3 +42,15 @@ yarn-error.*
 
 # EAS local credentials (contains keystore passwords)
 credentials.json
+
+# Maxfiy kalitlar (.env.example repoda qoladi)
+.env
+
+# Firebase (FCM) kaliti: EAS da GOOGLE_SERVICES_JSON file o'zgaruvchisi sifatida beriladi
+google-services.json
+
+# local env (secrets)
+.env
+
+# Office temp files
+~$*

@@ -1,151 +1,42 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Feather from '@expo/vector-icons/Feather';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { useWallet } from '../context/WalletContext';
+import useBottomInset from '../hooks/useBottomInset';
 
-import { formatNumber } from '../utils/format';
-const TYPE_CFG = {
-  master_payment: { label: "Ustaga to'lov", icon: 'account-hard-hat', color: '#e87a45' },
-  topup: { label: "Hamyon to'ldirish", icon: 'wallet-plus-outline', color: '#2fa37a' },
-  refund: { label: 'Qaytarish', icon: 'cash-refund', color: '#3f7fd4' },
+const fmt = (n) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+const TYPE_META = {
+  master_payment: { icon: 'account-hard-hat', color: '#e87a45' },
+  topup: { icon: 'wallet-plus-outline', color: '#2fa37a' },
+  refund: { icon: 'cash-refund', color: '#3f7fd4' },
 };
+const getTypeCfg = (tr) => ({
+  master_payment: { ...TYPE_META.master_payment, label: tr('paymentHistory.types.masterPayment') },
+  topup: { ...TYPE_META.topup, label: tr('paymentHistory.types.topup') },
+  refund: { ...TYPE_META.refund, label: tr('paymentHistory.types.refund') },
+});
 
-const STATUS_CFG = {
-  success: { label: 'Muvaffaqiyatli', color: '#2fa37a', bg: 'rgba(47,163,122,0.15)' },
-  pending: { label: 'Kutilmoqda', color: '#e87a45', bg: 'rgba(232,122,69,0.15)' },
-  failed: { label: 'Amalga oshmadi', color: '#e0473a', bg: 'rgba(224,71,58,0.13)' },
+const STATUS_META = {
+  success: { color: '#2fa37a', bg: 'rgba(47,163,122,0.15)' },
+  pending: { color: '#e87a45', bg: 'rgba(232,122,69,0.15)' },
+  failed: { color: '#e0473a', bg: 'rgba(224,71,58,0.13)' },
 };
+const getStatusCfg = (tr) => ({
+  success: { ...STATUS_META.success, label: tr('paymentHistory.status.success') },
+  pending: { ...STATUS_META.pending, label: tr('paymentHistory.status.pending') },
+  failed: { ...STATUS_META.failed, label: tr('paymentHistory.status.failed') },
+});
 
-const TRANSACTIONS = [
-  {
-    id: 't1',
-    type: 'master_payment',
-    title: 'Davron M.',
-    subtitle: "Santexnik · Santexnika ta'mirlash",
-    amount: 180000,
-    direction: 'out',
-    day: 5,
-    month: 'Iyun',
-    time: '10:35',
-    method: 'Karta · Humo ··42',
-    status: 'success',
-    letter: 'D',
-    color: '#2fa37a',
-  },
-  {
-    id: 't2',
-    type: 'master_payment',
-    title: 'Alisher U.',
-    subtitle: 'Elektrik · Elektr simlari almashtirish',
-    amount: 250000,
-    direction: 'out',
-    day: 28,
-    month: 'May',
-    time: '14:05',
-    method: 'Naqd pul',
-    status: 'success',
-    letter: 'A',
-    color: '#e87a45',
-  },
-  {
-    id: 't3',
-    type: 'refund',
-    title: 'Bekor qilingan buyurtma uchun qaytarish',
-    subtitle: "Bobur K. · Bo'yoqchi",
-    amount: 320000,
-    direction: 'in',
-    day: 20,
-    month: 'May',
-    time: '09:20',
-    method: 'Karta · Humo ··42',
-    status: 'success',
-  },
-  {
-    id: 't4',
-    type: 'master_payment',
-    title: 'Sardor T.',
-    subtitle: 'Plitachi · Parket yotqizish',
-    amount: 450000,
-    direction: 'out',
-    day: 12,
-    month: 'May',
-    time: '11:10',
-    method: 'Karta · Uzcard ··18',
-    status: 'success',
-    letter: 'S',
-    color: '#9b6cd1',
-  },
-  {
-    id: 't5',
-    type: 'topup',
-    title: "Hamyonni to'ldirish",
-    subtitle: 'AFISH.uz hamyon',
-    amount: 300000,
-    direction: 'in',
-    day: 8,
-    month: 'May',
-    time: '19:40',
-    method: 'Karta · Humo ··42',
-    status: 'success',
-  },
-  {
-    id: 't6',
-    type: 'master_payment',
-    title: 'Jahongir R.',
-    subtitle: "Konditsioner · Konditsioner o'rnatish",
-    amount: 200000,
-    direction: 'out',
-    day: 3,
-    month: 'Aprel',
-    time: '15:45',
-    method: 'Naqd pul',
-    status: 'success',
-    letter: 'J',
-    color: '#f5a623',
-  },
-  {
-    id: 't7',
-    type: 'topup',
-    title: "Hamyonni to'ldirish",
-    subtitle: 'AFISH.uz hamyon',
-    amount: 150000,
-    direction: 'in',
-    day: 26,
-    month: 'Mart',
-    time: '09:05',
-    method: 'Karta · Uzcard ··18',
-    status: 'success',
-  },
-  {
-    id: 't8',
-    type: 'master_payment',
-    title: 'Farrux N.',
-    subtitle: 'Gipschi · Gipsokarton qilish',
-    amount: 380000,
-    direction: 'out',
-    day: 25,
-    month: 'Mart',
-    time: '13:05',
-    method: 'Karta · Humo ··42',
-    status: 'failed',
-    letter: 'F',
-    color: '#26a69a',
-  },
-];
-
-const TABS = [
-  { key: 'all', label: 'Hammasi' },
-  { key: 'master', label: 'Ustalarga to\'lov' },
-  { key: 'wallet', label: 'Hamyon' },
+const TABS = (tr) => [
+  { key: 'all', label: tr('paymentHistory.tabs.all') },
+  { key: 'master', label: tr('paymentHistory.tabs.master') },
+  { key: 'wallet', label: tr('paymentHistory.tabs.wallet') },
 ];
 
 const matchesTab = (tx, tab) => {
@@ -153,20 +44,6 @@ const matchesTab = (tx, tab) => {
   if (tab === 'master') return tx.type === 'master_payment';
   return tx.type === 'topup' || tx.type === 'refund';
 };
-
-const COUNTS = {
-  all: TRANSACTIONS.length,
-  master: TRANSACTIONS.filter((tx) => tx.type === 'master_payment').length,
-  wallet: TRANSACTIONS.filter((tx) => tx.type !== 'master_payment').length,
-};
-
-const TOTAL_TO_MASTERS = TRANSACTIONS.filter(
-  (tx) => tx.type === 'master_payment' && tx.status === 'success'
-).reduce((sum, tx) => sum + tx.amount, 0);
-
-const TOTAL_INCOMING = TRANSACTIONS.filter(
-  (tx) => tx.direction === 'in' && tx.status === 'success'
-).reduce((sum, tx) => sum + tx.amount, 0);
 
 /* ── Compact stat cell (shared look with profile screen) ── */
 function StatCell({ icon, color, value, label, t, border }) {
@@ -187,8 +64,9 @@ function StatCell({ icon, color, value, label, t, border }) {
 
 /* ── Transaction card ── */
 function TransactionCard({ tx, t }) {
-  const typeCfg = TYPE_CFG[tx.type];
-  const statusCfg = STATUS_CFG[tx.status];
+  const { t: tr } = useLanguage();
+  const typeCfg = getTypeCfg(tr)[tx.type];
+  const statusCfg = getStatusCfg(tr)[tx.status];
   const isIn = tx.direction === 'in';
 
   return (
@@ -237,9 +115,10 @@ function TransactionCard({ tx, t }) {
       </View>
 
       <View style={[s.amountRow, { borderTopColor: t.border }]}>
-        <Text style={[s.amountLabel, { color: t.muted }]}>Summa</Text>
+        <Text style={[s.amountLabel, { color: t.muted }]}>{tr('paymentHistory.amountLabel')}</Text>
         <Text style={[s.amount, { color: isIn ? '#2fa37a' : t.text }]}>
-          {isIn ? '+' : '-'} {formatNumber(tx.amount)} <Text style={[s.amountSub, { color: t.muted }]}>so'm</Text>
+          {isIn ? '+' : '-'} {fmt(tx.amount)}{' '}
+          <Text style={[s.amountSub, { color: t.muted }]}>{tr('common.currencySom')}</Text>
         </Text>
       </View>
     </View>
@@ -247,10 +126,39 @@ function TransactionCard({ tx, t }) {
 }
 
 export default function PaymentHistoryScreen({ onBack }) {
+  const bottomInset = useBottomInset();
   const { theme: t } = useTheme();
+  const { t: tr } = useLanguage();
+  const { transactions } = useWallet();
   const [tab, setTab] = useState('all');
 
-  const list = TRANSACTIONS.filter((tx) => matchesTab(tx, tab));
+  const list = useMemo(() => transactions.filter((tx) => matchesTab(tx, tab)), [transactions, tab]);
+  const tabs = TABS(tr);
+
+  const counts = useMemo(
+    () => ({
+      all: transactions.length,
+      master: transactions.filter((tx) => tx.type === 'master_payment').length,
+      wallet: transactions.filter((tx) => tx.type !== 'master_payment').length,
+    }),
+    [transactions]
+  );
+
+  const totalToMasters = useMemo(
+    () =>
+      transactions
+        .filter((tx) => tx.type === 'master_payment' && tx.status === 'success')
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
+
+  const totalIncoming = useMemo(
+    () =>
+      transactions
+        .filter((tx) => tx.direction === 'in' && tx.status === 'success')
+        .reduce((sum, tx) => sum + tx.amount, 0),
+    [transactions]
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top', 'left', 'right']}>
@@ -264,33 +172,36 @@ export default function PaymentHistoryScreen({ onBack }) {
         >
           <MaterialCommunityIcons name="chevron-left" size={24} color={t.text} />
         </TouchableOpacity>
-        <Text style={[s.headerTitle, { color: t.text }]}>To'lov tarixi</Text>
+        <Text style={[s.headerTitle, { color: t.text }]}>{tr('paymentHistory.headerTitle')}</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 24 + bottomInset }}
+      >
         {/* Stats */}
         <View style={[s.statsRow, { backgroundColor: t.card, borderColor: t.border }]}>
           <StatCell
             icon="receipt-text-outline"
             color={t.orange}
-            value={`${COUNTS.all} ta`}
-            label="Jami tranzaksiya"
+            value={tr('profile.menu.itemCount', { n: counts.all })}
+            label={tr('paymentHistory.statTotal')}
             t={t}
             border
           />
           <StatCell
             icon="account-hard-hat"
             color="#e87a45"
-            value={`${formatNumber(TOTAL_TO_MASTERS / 1000)}k`}
-            label="Ustalarga, so'm"
+            value={`${fmt(totalToMasters / 1000)}k`}
+            label={tr('paymentHistory.statToMasters')}
             t={t}
             border
           />
           <StatCell
             icon="wallet-plus-outline"
             color="#2fa37a"
-            value={`${formatNumber(TOTAL_INCOMING / 1000)}k`}
-            label="Hamyonga, so'm"
+            value={`${fmt(totalIncoming / 1000)}k`}
+            label={tr('paymentHistory.statToWallet')}
             t={t}
           />
         </View>
@@ -301,7 +212,7 @@ export default function PaymentHistoryScreen({ onBack }) {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.tabsRow}
         >
-          {TABS.map((tb) => {
+          {tabs.map((tb) => {
             const active = tb.key === tab;
             return (
               <TouchableOpacity
@@ -310,18 +221,23 @@ export default function PaymentHistoryScreen({ onBack }) {
                 activeOpacity={0.8}
                 style={[
                   s.tabBtn,
-                  { backgroundColor: active ? t.orange : t.card, borderColor: active ? t.orange : t.border },
+                  {
+                    backgroundColor: active ? t.orange : t.card,
+                    borderColor: active ? t.orange : t.border,
+                  },
                 ]}
               >
                 <Text style={[s.tabLabel, { color: active ? '#fff' : t.muted }]}>{tb.label}</Text>
                 <View
                   style={[
                     s.tabBadge,
-                    { backgroundColor: active ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)' },
+                    {
+                      backgroundColor: active ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)',
+                    },
                   ]}
                 >
                   <Text style={[s.tabBadgeText, { color: active ? '#fff' : t.faint }]}>
-                    {COUNTS[tb.key]}
+                    {counts[tb.key]}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -336,10 +252,10 @@ export default function PaymentHistoryScreen({ onBack }) {
               <View style={[s.emptyIcon, { backgroundColor: t.card, borderColor: t.border }]}>
                 <MaterialCommunityIcons name="receipt-text-outline" size={40} color={t.faint} />
               </View>
-              <Text style={[s.emptyText, { color: t.text }]}>Tranzaksiyalar yo'q</Text>
-              <Text style={[s.emptySub, { color: t.muted }]}>
-                Bu bo'limda hozircha hech narsa ko'rinmayapti
+              <Text style={[s.emptyText, { color: t.text }]}>
+                {tr('paymentHistory.emptyTitle')}
               </Text>
+              <Text style={[s.emptySub, { color: t.muted }]}>{tr('paymentHistory.emptySub')}</Text>
             </View>
           ) : (
             list.map((tx) => <TransactionCard key={tx.id} tx={tx} t={t} />)
@@ -405,7 +321,14 @@ const s = StyleSheet.create({
 
   list: { paddingHorizontal: 16, gap: 11 },
 
-  card: { position: 'relative', borderRadius: 18, padding: 14, paddingLeft: 18, borderWidth: 1, overflow: 'hidden' },
+  card: {
+    position: 'relative',
+    borderRadius: 18,
+    padding: 14,
+    paddingLeft: 18,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
 
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

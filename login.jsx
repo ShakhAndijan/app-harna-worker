@@ -3,66 +3,66 @@ function LgIcon({
   size = 24,
   stroke = 2,
   fill = false,
-  color = "currentColor",
+  color = 'currentColor',
   style,
 }) {
   const c = {
     width: size,
     height: size,
-    viewBox: "0 0 24 24",
-    fill: "none",
+    viewBox: '0 0 24 24',
+    fill: 'none',
     stroke: color,
     strokeWidth: stroke,
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
     style,
   };
   switch (name) {
-    case "check":
+    case 'check':
       return (
         <svg {...c}>
           <circle cx="12" cy="12" r="9.5" />
           <path d="M8 12.2l2.6 2.6L16 9.4" />
         </svg>
       );
-    case "arrow":
+    case 'arrow':
       return (
         <svg {...c}>
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
       );
-    case "back":
+    case 'back':
       return (
         <svg {...c}>
           <path d="M15 5l-7 7 7 7" />
         </svg>
       );
-    case "mail":
+    case 'mail':
       return (
         <svg {...c}>
           <rect x="3" y="5" width="18" height="14" rx="3" />
           <path d="M4 7l8 5.5L20 7" />
         </svg>
       );
-    case "star":
+    case 'star':
       return (
         <svg {...c} fill={color} stroke="none">
           <path d="M12 3.2l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9 6.8 19.6l1-5.8L3.5 9.7l5.9-.9z" />
         </svg>
       );
-    case "bolt":
+    case 'bolt':
       return (
         <svg {...c} fill={color} stroke="none">
           <path d="M13 2L4.5 13.2H11l-1 8.8 8.5-11.3H12z" />
         </svg>
       );
-    case "wrench":
+    case 'wrench':
       return (
         <svg {...c}>
           <path d="M15.5 7.5a3.5 3.5 0 01-4.6 4.6L5.5 17.5a2 2 0 102.9 2.9l5.5-5.4a3.5 3.5 0 004.6-4.6l-2.1 2.1-2.4-.5-.5-2.4z" />
         </svg>
       );
-    case "brush":
+    case 'brush':
       return (
         <svg {...c}>
           <path d="M9.5 14.5l-2.8 2.8a2 2 0 01-3-2.6l.2-.2 2.8-2.8" />
@@ -70,14 +70,14 @@ function LgIcon({
           <path d="M5.5 17.5c0 1.4-.6 2.8-1.5 3.5 1.8.3 4 0 4.8-2" />
         </svg>
       );
-    case "hammer":
+    case 'hammer':
       return (
         <svg {...c}>
           <path d="M14 6l4 4M16.5 3.5l4 4-3 3-4-4z" />
           <path d="M13.5 8.5L5 17a2 2 0 102.8 2.8L16 11" />
         </svg>
       );
-    case "wallet":
+    case 'wallet':
       return (
         <svg {...c}>
           <rect x="3" y="6" width="18" height="13" rx="3" />
@@ -85,27 +85,27 @@ function LgIcon({
           <circle cx="16.5" cy="14.5" r="1.3" fill={color} stroke="none" />
         </svg>
       );
-    case "sun":
+    case 'sun':
       return (
         <svg {...c}>
           <circle cx="12" cy="12" r="4" />
           <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
       );
-    case "moon":
+    case 'moon':
       return (
         <svg {...c}>
           <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
         </svg>
       );
-    case "gear":
+    case 'gear':
       return (
         <svg {...c}>
           <circle cx="12" cy="12" r="3.2" />
           <path d="M19.4 13.5a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2v.2a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.6 1.7 1.7 0 00-1.9.4l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00-1.2-2.9H3a2 2 0 110-4h.1A1.7 1.7 0 004.7 8a1.7 1.7 0 00-.4-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3 1.7 1.7 0 001-1.5V2a2 2 0 114 0v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.4l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.5 1H22a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z" />
         </svg>
       );
-    case "google":
+    case 'google':
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" style={style}>
           <path
@@ -193,6 +193,7 @@ function LgBrand({ size = 30, usta = false }) {
           <span className="lg-b-uz">.uz</span>
         </span>
       </span>
+      {usta && <span className="lg-usta-pill">USTA</span>}
     </span>
   );
 }
@@ -211,7 +212,7 @@ function LgTopBar({ theme, onThemeToggle }) {
       >
         <div className="lg-theme-track">
           <div className="lg-theme-thumb">
-            {theme === "dark" ? (
+            {theme === 'dark' ? (
               <LgIcon name="moon" size={13} color="#a0a8c0" stroke={1.8} />
             ) : (
               <LgIcon name="sun" size={13} color="#f07a30" stroke={1.8} />
@@ -238,7 +239,7 @@ function LgUzFlag() {
 }
 
 function LgPhoneField({ value, onChange }) {
-  const controlled = typeof onChange === "function";
+  const controlled = typeof onChange === 'function';
   return (
     <label className="lg-field">
       <span className="lg-label">Telefon raqami</span>
@@ -295,19 +296,19 @@ function LgFooter({ regText }) {
 }
 
 const LG_SERVICES = [
-  { name: "Santexnik", color: "#22b8cf", icon: "wrench" },
-  { name: "Elektrik", color: "#ffd43b", icon: "bolt" },
-  { name: "Bo'yoqchi", color: "#ff7ab8", icon: "brush" },
-  { name: "Duradgor", color: "#9775fa", icon: "hammer" },
+  { name: 'Santexnik', color: '#22b8cf', icon: 'wrench' },
+  { name: 'Elektrik', color: '#ffd43b', icon: 'bolt' },
+  { name: "Bo'yoqchi", color: '#ff7ab8', icon: 'brush' },
+  { name: 'Duradgor', color: '#9775fa', icon: 'hammer' },
 ];
 
-function AfishLoginZakazchi({ onSubmit, initialTheme = "dark" }) {
-  const [phone, setPhone] = React.useState("");
+function AfishLoginZakazchi({ onSubmit, initialTheme = 'dark' }) {
+  const [phone, setPhone] = React.useState('');
   const [theme, setTheme] = React.useState(initialTheme);
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   return (
-    <div className={"afish-login" + (theme === "light" ? " light" : "")}>
+    <div className={'afish-login' + (theme === 'light' ? ' light' : '')}>
       <LgStatusBar theme={theme} />
       <LgTopBar theme={theme} onThemeToggle={toggleTheme} />
       <div className="lg-body">
@@ -326,8 +327,8 @@ function AfishLoginZakazchi({ onSubmit, initialTheme = "dark" }) {
                 name={s.icon}
                 size={16}
                 color={s.color}
-                fill={s.icon === "bolt"}
-              />{" "}
+                fill={s.icon === 'bolt'}
+              />{' '}
               {s.name}
             </span>
           ))}
@@ -347,19 +348,19 @@ function AfishLoginZakazchi({ onSubmit, initialTheme = "dark" }) {
   );
 }
 
-function AfishLoginUsta({ onSubmit, initialTheme = "dark" }) {
-  const [phone, setPhone] = React.useState("");
+function AfishLoginUsta({ onSubmit, initialTheme = 'dark' }) {
+  const [phone, setPhone] = React.useState('');
   const [theme, setTheme] = React.useState(initialTheme);
-  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
+  const toggleTheme = () => setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
 
   return (
-    <div className={"afish-login" + (theme === "light" ? " light" : "")}>
+    <div className={'afish-login' + (theme === 'light' ? ' light' : '')}>
       <LgStatusBar theme={theme} />
       <LgTopBar theme={theme} onThemeToggle={toggleTheme} />
       <div className="lg-body">
         <div className="lg-hero">
           <div className="lg-orb lg-orb-usta" />
-          <LgBrand size={30} />
+          <LgBrand size={30} usta />
           <h1 className="lg-h1">Ishni boshlaymizmi?</h1>
           <p className="lg-sub">
             Hisobingizga kirib buyurtmalarni qabul qiling va daromad oling.
