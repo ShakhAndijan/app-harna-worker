@@ -1,13 +1,6 @@
-import { useRouter } from 'expo-router';
-import LandingScreen from '../screens/LandingScreen';
-import { ustaRoute } from '../navigation/params';
+import { Redirect } from 'expo-router';
 
-export default function LandingRoute() {
-  const router = useRouter();
-  return (
-    <LandingScreen
-      onLogin={() => router.push('/login')}
-      onSelectUsta={(usta) => router.push(ustaRoute(usta))}
-    />
-  );
+// Ilova faqat ustalar uchun: mehmon to'g'ridan-to'g'ri kirish ekraniga o'tadi.
+export default function Index() {
+  return <Redirect href="/login" />;
 }

@@ -1,12 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { markNotificationRead } from '../api/notifications';
 import { notificationHref } from '../screens/notifications/utils';
 import { pushData, registerPush } from '../utils/push';
+
+// Expo Go (Android) da masofaviy push SDK 53 dan beri yo'q: tinglovchi xato tashlaydi.
+const IN_EXPO_GO = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
 // Kirgan foydalanuvchi uchun push: tokenni backendga yuboradi, bildirishnomaga bosilganda kerakli
 // ekranni ochadi. Yuborishni backend FCM orqali qiladi (ilova yopiq bo'lsa ham keladi); bu yerda
@@ -21,7 +25,7 @@ export default function usePushNotifications() {
 
   // Token: kirganda, til o'zgarganda (xabar matni shu tilda keladi) va FCM tokenni almashtirganda.
   useEffect(() => {
-    if (!signedIn) return undefined;
+    if (!signedIn || IN_EXPO_GO) return undefined;
     registerPush({ locale: language, ask: true });
     const sub = Notifications.addPushTokenListener(() => registerPush({ locale: language }));
     return () => sub.remove();

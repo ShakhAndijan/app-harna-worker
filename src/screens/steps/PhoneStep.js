@@ -62,13 +62,17 @@ export default function PhoneStep({
       >
         {/* ── Top bar ── */}
         <View style={s.topBar}>
-          <TouchableOpacity
-            style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-            onPress={onBack}
-            activeOpacity={0.75}
-          >
-            <Feather name="arrow-left" size={20} color={theme.text} />
-          </TouchableOpacity>
+          {onBack ? (
+            <TouchableOpacity
+              style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+              onPress={onBack}
+              activeOpacity={0.75}
+            >
+              <Feather name="arrow-left" size={20} color={theme.text} />
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
 
           <ThemeSwitch />
         </View>

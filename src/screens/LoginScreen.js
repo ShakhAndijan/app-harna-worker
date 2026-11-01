@@ -7,10 +7,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
   googleLogin,
-  loginCustomer,
-  startCustomerAuth,
-  verifyCustomerAuth,
-  completeCustomerAuth,
   loginWorker,
   startWorkerAuth,
   verifyWorkerAuth,
@@ -45,22 +41,14 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
   const [forgotCode, setForgotCode] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-  // 'customer' (mijoz) yoki 'worker' (usta) — kirish ekranidagi havola bilan almashadi.
-  const [actorType, setActorType] = useState('customer');
-  const isWorker = actorType === 'worker';
-  const api = isWorker
-    ? {
-        login: loginWorker,
-        start: startWorkerAuth,
-        verify: verifyWorkerAuth,
-        complete: completeWorkerAuth,
-      }
-    : {
-        login: loginCustomer,
-        start: startCustomerAuth,
-        verify: verifyCustomerAuth,
-        complete: completeCustomerAuth,
-      };
+  // Ilova faqat ustalar (mutaxassislar) uchun.
+  const actorType = 'worker';
+  const api = {
+    login: loginWorker,
+    start: startWorkerAuth,
+    verify: verifyWorkerAuth,
+    complete: completeWorkerAuth,
+  };
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -241,10 +229,6 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
         onGoogle={handleGoogle}
         googleLoading={googleLoading}
         actorType={actorType}
-        onSwitchActor={() => {
-          setActorType(isWorker ? 'customer' : 'worker');
-          setOtpError('');
-        }}
       />
     ),
     code: (

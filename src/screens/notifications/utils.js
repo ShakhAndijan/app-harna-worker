@@ -67,16 +67,11 @@ export function notificationHref(n) {
   const p = n.payload ?? {};
   if (n.type === 'support.answered') return supportRoute(p.kind);
   if (n.type === 'listing.commented' || n.type === 'listing.replied') {
-    return typeof p.listing_id === 'number'
-      ? { pathname: '/listing/[id]', params: { id: String(p.listing_id) } }
-      : '/listings';
+    return '/listings';
   }
   const orderId = p.order_id;
   if (orderId != null && /^(order|offer)\./.test(n.type)) {
-    const closed = n.type === 'order.completed' || n.type === 'order.cancelled';
-    return closed
-      ? { pathname: '/order/[id]', params: { id: String(orderId) } }
-      : { pathname: '/request/[id]', params: { id: String(orderId) } };
+    return { pathname: '/order/[id]', params: { id: String(orderId) } };
   }
   return '/orders';
 }

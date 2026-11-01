@@ -23,7 +23,9 @@ export default function BiometricLockScreen({ unlocking, onRetry, onUseOtherAcco
           activeOpacity={0.85}
           style={[styles.retryBtn, { opacity: unlocking ? 0.7 : 1 }]}
         >
-          <Text style={styles.retryTxt}>{unlocking ? t('app.lock.checking') : t('app.lock.retry')}</Text>
+          <Text style={styles.retryTxt}>
+            {unlocking ? t('app.lock.checking') : t('app.lock.retry')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={onUseOtherAccount} activeOpacity={0.7} style={{ marginTop: 4 }}>
           <Text style={styles.otherTxt}>{t('app.lock.useOtherAccount')}</Text>

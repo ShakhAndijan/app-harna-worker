@@ -7,7 +7,7 @@ const config = getDefaultConfig(__dirname);
 // eski uslubdagi platforma fayllariga (.android.js/.ios.js) tayanadi va
 // "package exports" resolyutsiyasi yoqilganda Metro ularni topa olmay
 // qoladi ("Unable to resolve './picker'" kabi xatolar). Shu sabab o'chirilgan.
-config.resolver.unstable_enablePackageExports = false;
+config.resolver.unstable_enablePackageExports = true;
 
 const STUB = path.resolve(__dirname, 'stubs/empty.js');
 

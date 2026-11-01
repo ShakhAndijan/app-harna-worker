@@ -48,7 +48,13 @@ export default function SuccessModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none" statusBarTranslucent onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={handleClose}
+    >
       <Animated.View style={[s.backdrop, { opacity: fadeAnim }]}>
         <Animated.View
           style={[s.popup, { backgroundColor: t.card, transform: [{ scale: scaleAnim }] }]}
