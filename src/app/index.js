@@ -1,6 +1,7 @@
-import { Redirect } from 'expo-router';
+import { useRouter } from 'expo-router';
+import LandingScreen from '../screens/LandingScreen';
 
-// Ilova faqat ustalar uchun: mehmon to'g'ridan-to'g'ri kirish ekraniga o'tadi.
-export default function Index() {
-  return <Redirect href="/login" />;
+export default function LandingRoute() {
+  const router = useRouter();
+  return <LandingScreen onLogin={() => router.push('/login')} />;
 }

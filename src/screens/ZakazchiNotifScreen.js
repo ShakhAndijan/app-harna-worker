@@ -10,6 +10,7 @@ import PushPermissionBanner from './notifications/PushPermissionBanner';
 import { useUnreadNotifications } from '../queries/notifications';
 import { useLanguage } from '../context/LanguageContext';
 import useBottomInset from '../hooks/useBottomInset';
+import usePullRefresh from '../hooks/usePullRefresh';
 
 function Toggle({ on, onPress, accent }) {
   const anim = useRef(new Animated.Value(on ? 1 : 0)).current;
@@ -54,6 +55,7 @@ function ToggleRow({ iconName, iconColor, label, sub, on, onPress, border, t }) 
 }
 
 export default function ZakazchiNotifScreen({ onBack }) {
+  const { refreshControl } = usePullRefresh();
   const bottomInset = useBottomInset();
   const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
@@ -116,6 +118,7 @@ export default function ZakazchiNotifScreen({ onBack }) {
         <NotificationsList />
       ) : (
         <ScrollView
+          refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={[s.scroll, { paddingBottom: 40 + bottomInset }]}
         >

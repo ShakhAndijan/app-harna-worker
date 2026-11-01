@@ -4,6 +4,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
+import { FEATURES } from '../../constants/config';
 import { getPushPermission, registerPush, requestPushPermission } from '../../utils/push';
 
 // Tizim ruxsati berilmagan bo'lsa chiqadi: bosilganda ruxsat so'raladi (ikki marta rad etilgan
@@ -26,7 +27,7 @@ export default function PushPermissionBanner() {
     return () => sub.remove();
   }, [refresh]);
 
-  if (!perm || perm.status === 'granted') return null;
+  if (!FEATURES.pushNotifications || !perm || perm.status === 'granted') return null;
   const blocked = perm.status === 'denied' && !perm.canAskAgain;
 
   const onPress = async () => {

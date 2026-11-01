@@ -13,7 +13,7 @@ export default function useAuthGate({ onUnlocked }) {
   const tryUnlock = async () => {
     const token = await unlockToken();
     if (!token) return false;
-    await onUnlocked();
+    onUnlocked();
     setLocked(false);
     return true;
   };

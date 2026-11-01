@@ -24,6 +24,7 @@ const UNLOCK_PROMPT = 'Ilovaga kirish uchun barmoq izi yoki Face ID orqali tasdi
 // juftlik yoziladi. Biometrikka bog'langan yozuvga yozish har safar biometrik oynasini chiqarar edi.
 // Shuning uchun tokenlar jimgina yoziladi, biometrik esa ilova ochilganda tekshiriladi.
 // Biometrik yoki ekran qulfi sozlanmagan qurilmada tekshiruv o'tkazib yuboriladi.
+// Vaqtincha o'chirilgan: oddiy token bilan kiriladi. Qaytarish uchun true qiling.
 const BIOMETRIC_LOCK = false;
 
 // So'rov boshiga SecureStore'dan o'qish o'rniga, bir marta unlockToken() orqali xotiraga olib,

@@ -3,10 +3,8 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// Ba'zi paketlar (masalan @react-native-community/datetimepicker) hali
-// eski uslubdagi platforma fayllariga (.android.js/.ios.js) tayanadi va
-// "package exports" resolyutsiyasi yoqilganda Metro ularni topa olmay
-// qoladi ("Unable to resolve './picker'" kabi xatolar). Shu sabab o'chirilgan.
+// SDK 58 (React Native 0.88) da `react-native/setup-env` faqat package "exports" orqali ochiladi,
+// shuning uchun bu yoqilgan bo'lishi shart (SDK 56 da datetimepicker sabab o'chirilgan edi).
 config.resolver.unstable_enablePackageExports = true;
 
 const STUB = path.resolve(__dirname, 'stubs/empty.js');

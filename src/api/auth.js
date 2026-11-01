@@ -62,11 +62,18 @@ export async function uploadImageToPresignedUrl(uploadUrl, imageUri, contentType
   });
 }
 
-export async function loginCustomer(phone, password) {
+/**
+ * Parol bilan kirish. `identifier` — "+998..." telefon yoki tasdiqlangan email (server `@` bo'yicha ajratadi).
+ * Telefon uchun eski `phone` maydoni yuboriladi (mobil ilovalar shartnomasi).
+ * Xatolar: `invalid_credentials` (parol noto'g'ri / o'rnatilmagan / hisob yo'q — bitta xabar),
+ * `account_locked_minutes` (qolgan daqiqalar `public_data.minutes` da).
+ */
+export async function loginWorker(identifier, password, consentVersion) {
+  const target = identifier.includes('@') ? { identifier } : { phone: identifier };
   return authPost(
-    'loginCustomer',
-    ENDPOINTS.CUSTOMER_LOGIN,
-    { phone, password },
+    'loginWorker',
+    ENDPOINTS.WORKER_LOGIN,
+    { ...target, password, consent_version: consentVersion },
     'Kirishda xatolik yuz berdi'
   );
 }
@@ -77,10 +84,10 @@ export async function loginCustomer(phone, password) {
  * ko'rishning oldini oladi.
  * @returns {Promise<{ sent: boolean, dev_code?: string }>}
  */
-export async function startCustomerAuth(identifier, channel = 'sms') {
+export async function startWorkerAuth(identifier, channel = 'sms') {
   return authPost(
-    'startCustomerAuth',
-    ENDPOINTS.AUTH_CUSTOMER_START,
+    'startWorkerAuth',
+    ENDPOINTS.AUTH_WORKER_START,
     { identifier, channel },
     'Kod yuborishda xatolik yuz berdi'
   );
@@ -93,94 +100,62 @@ export async function startCustomerAuth(identifier, channel = 'sms') {
  *   kodning isboti). Agar shu bilan birga `suggested_first_name`/
  *   `suggested_last_name` ham qaytgan bo'lsa (masalan avval usta sifatida
  *   ro'yxatdan o'tgan bo'lsa, ismi ma'lum), foydalanuvchidan qayta
- *   so'ramasdan shu qiymatlar bilan completeCustomerAuth avtomatik
+ *   so'ramasdan shu qiymatlar bilan completeWorkerAuth avtomatik
  *   chaqiriladi; aks holda ism-familiya so'raladi va shu bilan
- *   completeCustomerAuth chaqiriladi.
+ *   completeWorkerAuth chaqiriladi.
  * @returns {Promise<{ access_token: string|null, refresh_token: string|null, status?: string, ticket?: string, suggested_first_name?: string, suggested_last_name?: string }>}
  */
-export async function verifyCustomerAuth(identifier, code) {
+export async function verifyWorkerAuth(identifier, code, consentVersion) {
   return authPost(
-    'verifyCustomerAuth',
-    ENDPOINTS.AUTH_CUSTOMER_VERIFY,
-    { identifier, code },
+    'verifyWorkerAuth',
+    ENDPOINTS.AUTH_WORKER_VERIFY,
+    { identifier, code, consent_version: consentVersion },
     'Kodni tasdiqlashda xatolik yuz berdi'
   );
 }
 
 /**
- * Yangi mijoz hisobini yaratadi va kirishni yakunlaydi. Faqat verify hisobni
- * topa olmagan holatda chaqiriladi — `ticket` allaqachon tasdiqlangan kodning
+ * Yangi usta hisobini yaratadi va kirishni yakunlaydi. Verify hisobni
+ * topa olmagan (`needs_name`) yoki hisob faqat mijoz tomonida topilgan (`other_actor`) holatda chaqiriladi — `ticket` allaqachon tasdiqlangan kodning
  * isboti bo'lgani uchun kod qayta so'ralmaydi, faqat ism-familiya kerak.
+ * `consentVersion` — foydalanuvchi belgilagan shaxsiy ma'lumotlarga rozilik matni versiyasi; yangi hisob
+ * uchun majburiy (400 `consent_required` / `consent_outdated`).
  * @returns {Promise<{ access_token: string, refresh_token: string }>}
  */
-export async function completeCustomerAuth(ticket, firstName, lastName) {
-  return authPost(
-    'completeCustomerAuth',
-    ENDPOINTS.AUTH_CUSTOMER_COMPLETE,
-    { ticket, first_name: firstName, last_name: lastName },
-    'Hisob yaratishda xatolik yuz berdi'
-  );
-}
-
-// ── Usta (mutaxassis) kirishi: /auth/worker/* — mijozniki bilan bir xil shakl ──
-// Yangi hisob ochilganda rozilik versiyasi (consent_version) yuborilishi shart.
-const CONSENT_VERSION = 'consent-v1';
-
-export async function loginWorker(phone, password) {
-  return authPost(
-    'loginWorker',
-    ENDPOINTS.WORKER_LOGIN,
-    { phone, password },
-    'Kirishda xatolik yuz berdi'
-  );
-}
-
-export async function startWorkerAuth(identifier, channel = 'sms') {
-  return authPost(
-    'startWorkerAuth',
-    ENDPOINTS.AUTH_WORKER_START,
-    { identifier, channel },
-    'Kod yuborishda xatolik yuz berdi'
-  );
-}
-
-export async function verifyWorkerAuth(identifier, code) {
-  return authPost(
-    'verifyWorkerAuth',
-    ENDPOINTS.AUTH_WORKER_VERIFY,
-    { identifier, code },
-    'Kodni tasdiqlashda xatolik yuz berdi'
-  );
-}
-
-export async function completeWorkerAuth(ticket, firstName, lastName) {
+export async function completeWorkerAuth(ticket, firstName, lastName, consentVersion) {
   return authPost(
     'completeWorkerAuth',
     ENDPOINTS.AUTH_WORKER_COMPLETE,
-    { ticket, first_name: firstName, last_name: lastName, consent_version: CONSENT_VERSION },
+    {
+      ticket,
+      // Ism ixtiyoriy: yuborilmasa server uni ikkinchi tomondagi (mijoz) hisobdan oladi.
+      ...(firstName ? { first_name: firstName } : {}),
+      ...(lastName ? { last_name: lastName } : {}),
+      consent_version: consentVersion,
+    },
     'Hisob yaratishda xatolik yuz berdi'
   );
 }
 
-export async function requestResetPasswordOtp(phone, actorType = 'customer') {
+export async function requestResetPasswordOtp(phone) {
   return authPost(
     'requestResetPasswordOtp',
     ENDPOINTS.RESET_PASSWORD_REQUEST_OTP,
-    { phone, actor_type: actorType },
+    { phone, actor_type: 'worker' },
     'Kod yuborishda xatolik yuz berdi'
   );
 }
 
-export async function verifyResetPasswordOtp(phone, code, newPassword, actorType = 'customer') {
+export async function verifyResetPasswordOtp(phone, code, newPassword) {
   return authPost(
     'verifyResetPasswordOtp',
     ENDPOINTS.RESET_PASSWORD_VERIFY_OTP,
-    { phone, actor_type: actorType, code, new_password: newPassword },
+    { phone, actor_type: 'worker', code, new_password: newPassword },
     'Parolni saqlashda xatolik yuz berdi'
   );
 }
 
-export async function googleLogin(actorType = 'customer') {
+export async function googleLogin(actorType = 'worker') {
   const redirectUri = Linking.createURL('auth/callback');
   const loginUrl =
     `${ENDPOINTS.AUTH_GOOGLE_LOGIN}?actor_type=${actorType}` +

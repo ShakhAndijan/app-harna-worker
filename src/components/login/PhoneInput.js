@@ -18,25 +18,18 @@ export default function PhoneInput({ value = '', onChangeText, theme }) {
   const isDark = !theme || theme.isDark !== false;
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isDark ? '#0a1626' : '#ffffff',
-          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)',
-        },
-      ]}
-    >
+    <View style={[
+      styles.container,
+      {
+        backgroundColor: isDark ? '#0a1626' : '#ffffff',
+        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.10)',
+      },
+    ]}>
       <View style={styles.prefix}>
         <Text style={styles.flag}>🇺🇿</Text>
         <Text style={[styles.code, { color: isDark ? '#fff' : '#0f1117' }]}>+998</Text>
       </View>
-      <View
-        style={[
-          styles.separator,
-          { backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)' },
-        ]}
-      />
+      <View style={[styles.separator, { backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.10)' }]} />
       <TextInput
         style={[styles.input, { color: isDark ? '#fff' : '#0f1117' }]}
         placeholder="90 123 45 67"

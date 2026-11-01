@@ -24,10 +24,12 @@ import { useSendSupportItem, useSupportItems } from '../queries/support';
 import { SUPPORT_MAX_LENGTH, SUPPORT_MIN_LENGTH } from '../api/support';
 import { getErrorMessage } from '../utils/errors';
 import useBottomInset from '../hooks/useBottomInset';
+import usePullRefresh from '../hooks/usePullRefresh';
 
 // "Murojaatlarim" va "Takliflarim" (saytdagi /support va kabinet): yangi murojaat/taklif yozish va
 // yuborilganlar ro'yxati; jamoa javobi shu yerda va bildirishnomalarda ko'rinadi.
 export default function SupportScreen({ kind: initialKind = 'question', onBack }) {
+  const { refreshControl } = usePullRefresh();
   const bottomInset = useBottomInset();
   const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
@@ -101,6 +103,7 @@ export default function SupportScreen({ kind: initialKind = 'question', onBack }
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
+          refreshControl={refreshControl}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{
             paddingHorizontal: 20,

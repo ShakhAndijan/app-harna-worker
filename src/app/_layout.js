@@ -19,8 +19,13 @@ import BiometricLockScreen from '../screens/BiometricLockScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { LanguageProvider } from '../context/LanguageContext';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import { UserProvider } from '../context/UserContext';
+import { WalletProvider } from '../context/WalletContext';
 import { markStartup } from '../utils/startup';
 import usePushNotifications from '../hooks/usePushNotifications';
+import usePreferencesSync from '../hooks/usePreferencesSync';
+import ConsentGate from '../components/ConsentGate';
+import { FEATURES } from '../constants/config';
 
 // Native splash birinchi ekran tayyor bo'lguncha turadi: bo'sh ekran va alohida yuklagich bosqichi yo'q.
 SplashScreen.preventAutoHideAsync();
@@ -33,8 +38,9 @@ const hideSplash = () => {
 };
 
 // Ilova ildizi: providerlar va asosiy Stack. Marshrutlar `src/app/` papkasidagi fayllardan olinadi.
-//  - mehmon: index (kirish ekraniga yo'naltiradi), login
-//  - usta:   (worker) tablari (asosiy, buyurtmalar, e'lonlar, hamyon, profil) va undan ochiladigan ekranlar
+//  - mehmon:   index (landing), login
+//  - mijoz:    (tabs) va undan ochiladigan ekranlar (hamyon, buyurtmalar, profil sahifalari ...)
+//  - hammaga:  usta/[id], work, listings, listing/[id], reels, workers, document
 export default function RootLayout() {
   return (
     <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
@@ -86,50 +92,83 @@ function RootNavigator() {
   }
 
   return (
-    <NavigationThemeProvider value={navTheme}>
-      <View style={{ flex: 1, backgroundColor: t.bg }} onLayout={hideSplash}>
-        <StatusBar style={t.isDark ? 'light' : 'dark'} />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
-          <Stack.Protected guard={signedIn}>
-            <Stack.Screen name="(worker)" />
-            <Stack.Screen name="order/[id]" />
-            <Stack.Screen name="order-chat/[id]" />
-            <Stack.Screen name="listing-edit" />
-            <Stack.Screen name="profile-edit" />
-            <Stack.Screen name="my-categories" />
-            <Stack.Screen name="schedule" />
-            <Stack.Screen name="my-reviews" />
-            <Stack.Screen name="referral" />
-            <Stack.Screen name="complaints" />
-            <Stack.Screen name="account" />
-            <Stack.Screen name="top" />
-            <Stack.Screen name="brigade" />
-            <Stack.Screen name="pro" />
-            <Stack.Screen name="portfolio" />
-            <Stack.Screen name="certificates" />
-            <Stack.Screen name="notifications" />
-            <Stack.Screen name="help" />
-            <Stack.Screen name="change-password" />
-            <Stack.Screen name="support" />
-            <Stack.Screen name="support-chat" />
-          </Stack.Protected>
-          <Stack.Protected guard={!signedIn}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="login" />
-          </Stack.Protected>
-          <Stack.Screen name="document" />
-        </Stack>
-        <AuthRedirect />
-        <PushNotifications />
-      </View>
-    </NavigationThemeProvider>
+    <UserProvider enabled={signedIn}>
+      <WalletProvider>
+        <NavigationThemeProvider value={navTheme}>
+          <View style={{ flex: 1, backgroundColor: t.bg }} onLayout={hideSplash}>
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.bg } }}>
+              <Stack.Protected guard={signedIn}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="wallet" />
+                <Stack.Screen name="orders" />
+                <Stack.Screen name="order/[id]" />
+                <Stack.Screen name="order-worker" />
+                <Stack.Screen name="addresses" />
+                <Stack.Screen name="payment-history" />
+                <Stack.Screen name="notifications" />
+                <Stack.Screen name="help" />
+                <Stack.Screen name="edit-profile" />
+                <Stack.Screen name="change-password" />
+                <Stack.Screen name="change-phone" />
+                <Stack.Screen name="my-rating" />
+                <Stack.Screen name="verify-identity" />
+                <Stack.Screen name="verify-email" />
+                <Stack.Screen name="favorites" />
+                <Stack.Screen name="request/[id]" />
+                <Stack.Screen name="chat" />
+                <Stack.Screen name="support" />
+                <Stack.Screen name="support-chat" />
+                <Stack.Screen name="delete-account" />
+                <Stack.Screen name="complaint" />
+                <Stack.Screen name="my-complaints" />
+                <Stack.Screen name="company" />
+                <Stack.Screen name="company-form" />
+                <Stack.Screen name="company-site" />
+                <Stack.Screen name="company-plan" />
+                <Stack.Screen name="company-member" />
+                <Stack.Screen name="company-statement" />
+              </Stack.Protected>
+              <Stack.Protected guard={!signedIn}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="login" />
+              </Stack.Protected>
+              <Stack.Screen name="usta/[id]" />
+              <Stack.Screen name="work" />
+              <Stack.Screen name="listings" />
+              <Stack.Screen name="listing/[id]" />
+              <Stack.Screen name="reels" options={{ animation: 'fade' }} />
+              <Stack.Screen name="workers" />
+              <Stack.Screen name="document" />
+              <Stack.Screen name="articles" />
+              <Stack.Screen name="article/[slug]" />
+            </Stack>
+            <AuthRedirect />
+            <PushNotifications />
+            <PreferencesSync />
+            <ConsentGate />
+          </View>
+        </NavigationThemeProvider>
+      </WalletProvider>
+    </UserProvider>
   );
 }
 
 // Push: token yuborish va bildirishnoma bosilganda ekran ochish. AuthRedirect'dan keyin turadi,
 // shunda uning effekti avval ishlab, push ochgan ekran bosh sahifa ustida qoladi.
 function PushNotifications() {
+  if (!FEATURES.pushNotifications) return null;
+  return <PushNotificationsActive />;
+}
+
+function PushNotificationsActive() {
   usePushNotifications();
+  return null;
+}
+
+// Til va mavzu hisob bilan sinxronlanadi (boshqa qurilmada ham shu tanlov chiqadi).
+function PreferencesSync() {
+  usePreferencesSync();
   return null;
 }
 
@@ -145,7 +184,7 @@ function AuthRedirect() {
     if (!navState?.key || previous.current === signedIn) return;
     const isFirst = previous.current === null;
     previous.current = signedIn;
-    if (signedIn) router.replace('/home');
+    if (signedIn) router.replace('/(tabs)/home');
     else if (!isFirst) router.replace('/');
   }, [signedIn, navState?.key, router]);
 

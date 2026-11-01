@@ -4,11 +4,15 @@ import { request } from '../utils/request';
 // Mobil push (FCM): qurilma tokenini backendga bog'lash. Backend tokenni foydalanuvchiga biriktiradi
 // va hodisa bo'lganda FCM orqali yuboradi, shuning uchun ilova yopiq bo'lsa ham xabar keladi.
 
-/** Tokenni saqlaydi (token bo'yicha upsert). `locale` — xabar matni tili. */
+/**
+ * Tokenni saqlaydi (token bo'yicha upsert); javob `{ devices }` — foydalanuvchining qurilmalari soni.
+ * `format: 'notification'` — FCM'ning tayyor title/body xabari: ilova yopiq bo'lsa ham tizim o'zi ko'rsatadi.
+ * `locale` — xabar matni tili.
+ */
 export function registerPushDevice({ token, platform, locale, appVersion }) {
   return request(ENDPOINTS.PUSH_DEVICES, {
     method: 'POST',
-    body: { token, platform, app: 'customer', locale, app_version: appVersion },
+    body: { token, platform, format: 'notification', locale, app_version: appVersion },
     timeout: 10000,
     fallbackMessage: 'Push qurilmasi saqlanmadi',
   });

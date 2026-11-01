@@ -113,6 +113,11 @@ export async function unregisterPush() {
   await AsyncStorage.removeItem(REGISTERED_KEY).catch(() => {});
 }
 
+/** Hisob o'chirilganda backendga murojaat qilinmaydi (token endi yaroqsiz), faqat mahalliy belgi tozalanadi. */
+export async function forgetPush() {
+  await AsyncStorage.removeItem(REGISTERED_KEY).catch(() => {});
+}
+
 // Push `data` qismini bildirishnoma ro'yxatidagi `payload` ko'rinishiga keltiradi. FCM data qiymatlari
 // doim matn bo'lgani uchun `*_id` maydonlari songa o'giriladi.
 export function pushData(response) {

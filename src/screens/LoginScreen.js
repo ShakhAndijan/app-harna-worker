@@ -14,6 +14,8 @@ import {
   requestResetPasswordOtp,
   verifyResetPasswordOtp,
 } from '../api/auth';
+import { acceptConsent } from '../api/legal';
+import { useConsentVersion, useLegalIndex } from '../queries/legal';
 import { saveSession, saveActorType } from '../utils/token';
 import { buildIdentifier } from '../utils/identifier';
 import PhoneStep from './steps/PhoneStep';
@@ -41,23 +43,23 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
   const [forgotCode, setForgotCode] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState('');
-  // Ilova faqat ustalar (mutaxassislar) uchun.
-  const actorType = 'worker';
-  const api = {
-    login: loginWorker,
-    start: startWorkerAuth,
-    verify: verifyWorkerAuth,
-    complete: completeWorkerAuth,
-  };
+  const [actorType] = useState('worker');
   const [googleLoading, setGoogleLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+  // Parol qadamidan "orqaga" qayerga qaytishi: birinchi ekrandan kirilgan bo'lsa — telefon ekraniga.
+  const [passwordFrom, setPasswordFrom] = useState('code');
 
   // ── Telefon + OTP (login va register birlashgan oqimi: start → verify → complete) ──
   const [identifier, setIdentifier] = useState('');
   // Kirish usuli: telefon yoki qo'lda yoziladigan email.
   const [identifierMode, setIdentifierMode] = useState('phone');
   const [ticket, setTicket] = useState('');
+  const [suggestedName, setSuggestedName] = useState({ firstName: '', lastName: '' });
+  // Shaxsiy ma'lumotlarga rozilik belgisi (birinchi qadamda qo'yiladi, keyingi qadamlarda versiya bilan yuboriladi).
+  const [consent, setConsent] = useState(false);
+  const legalIndex = useLegalIndex();
+  const consentVersion = useConsentVersion();
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpChannel, setOtpChannel] = useState('sms');
   const [otpError, setOtpError] = useState('');
@@ -67,10 +69,12 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
   const [completeLoading, setCompleteLoading] = useState(false);
   const [completeError, setCompleteError] = useState('');
 
-  const finishLogin = async (data) => {
+  const finishLogin = async (data, { recordConsent = false } = {}) => {
     if (data?.access_token) {
       await saveSession({ accessToken: data.access_token, refreshToken: data.refresh_token });
     }
+    // Google (mobil oqim) rozilikni o'zi qabul qilmaydi: belgi kirishdan oldin qo'yilgan, shuni shu yerda qayd etamiz.
+    if (recordConsent) await acceptConsent(consentVersion).catch(() => {});
     await saveActorType(actorType);
     (onLoginSuccess ?? onBack)(actorType);
   };
@@ -81,7 +85,7 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       setOtpLoading(true);
       setOtpError('');
       setVerifyError('');
-      const data = await api.start(buildIdentifier(identifier, identifierMode), channel);
+      const data = await startWorkerAuth(buildIdentifier(identifier, identifierMode), channel);
       setDevCode(data?.dev_code || '');
       setStep('code');
     } catch (e) {
@@ -95,22 +99,40 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setVerifyLoading(true);
       setVerifyError('');
-      const data = await api.verify(buildIdentifier(identifier, identifierMode), code);
+      const data = await verifyWorkerAuth(
+        buildIdentifier(identifier, identifierMode),
+        code,
+        consentVersion
+      );
       devLog('[login] verify status:', data?.status);
       if (data?.access_token) {
         await finishLogin(data);
-      } else if (data?.suggested_first_name && data?.suggested_last_name) {
-        // Ism-familiya boshqa hisobdan (masalan usta sifatida avval ro'yxatdan
-        // o'tgan bo'lsa) allaqachon ma'lum — foydalanuvchidan qayta so'ramasdan
-        // avtomatik /complete chaqirib kirgazamiz.
-        const completed = await api.complete(
-          data?.ticket || '',
-          data.suggested_first_name,
-          data.suggested_last_name
-        );
-        await finishLogin(completed);
-      } else if (data?.status === 'needs_name') {
+      } else if (data?.status === 'other_actor' && data?.ticket) {
+        // Raqam faqat mijoz sifatida ro'yxatdan o'tgan: usta hisobi shu raqamga ochiladi. Kontakt allaqachon
+        // tasdiqlangan, ism mijoz hisobidan olinadi — foydalanuvchidan qayta so'ralmaydi.
+        const first = data.suggested_first_name || '';
+        const last = data.suggested_last_name || '';
+        setTicket(data.ticket);
+        setSuggestedName({ firstName: first, lastName: last });
+        setCompleteError('');
+        try {
+          const done = await completeWorkerAuth(data.ticket, first, last, consentVersion);
+          await finishLogin(done);
+        } catch (err) {
+          // Ism topilmasa (name_required) yoki rozilik eskirgan bo'lsa — qo'lda to'ldirish qadamiga o'tamiz.
+          if (err?.code === 'consent_outdated') legalIndex.refetch();
+          setCompleteError(getErrorMessage(err, t, 'login.registerStep.errors.finishFailed'));
+          setStep('completeProfile');
+        }
+      } else if (data?.status === 'needs_name' || data?.ticket) {
+        // Yangi hisob: ism-familiya va shaxsiy ma'lumotlarga rozilik belgisi shu qadamda olinadi.
+        // Ism boshqa hisobdan (masalan usta sifatida avval ro'yxatdan o'tgan bo'lsa) ma'lum bo'lsa,
+        // maydonlar tayyor to'ldirilgan holda chiqadi — rozilikni esa foydalanuvchi o'zi belgilashi shart.
         setTicket(data?.ticket || '');
+        setSuggestedName({
+          firstName: data?.suggested_first_name || '',
+          lastName: data?.suggested_last_name || '',
+        });
         setCompleteError('');
         setStep('completeProfile');
       } else {
@@ -127,9 +149,11 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setCompleteLoading(true);
       setCompleteError('');
-      const data = await api.complete(ticket, firstName, lastName);
+      const data = await completeWorkerAuth(ticket, firstName, lastName, consentVersion);
       await finishLogin(data);
     } catch (e) {
+      // Rozilik matni yangilangan bo'lsa, amaldagi versiyani qayta olamiz va foydalanuvchi qayta urinadi.
+      if (e?.code === 'consent_outdated') legalIndex.refetch();
       setCompleteError(getErrorMessage(e, t, 'login.registerStep.errors.finishFailed'));
     } finally {
       setCompleteLoading(false);
@@ -140,8 +164,11 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setLoginLoading(true);
       setLoginError('');
-      const fullPhone = '+998' + phone.replace(/\D/g, '');
-      const data = await api.login(fullPhone, password);
+      const data = await loginWorker(
+        buildIdentifier(phone, identifierMode),
+        password,
+        consentVersion
+      );
       await finishLogin(data);
     } catch (e) {
       setLoginError(getErrorMessage(e, t, 'login.errors.loginFailed'));
@@ -155,7 +182,7 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       setForgotLoading(true);
       setForgotError('');
       const fullPhone = '+998' + forgotPhone.replace(/\D/g, '');
-      const data = await requestResetPasswordOtp(fullPhone, actorType);
+      const data = await requestResetPasswordOtp(fullPhone);
       setForgotDevCode(data?.dev_code || '');
       setStep('forgotCode');
     } catch (e) {
@@ -169,7 +196,7 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setForgotResendLoading(true);
       const fullPhone = '+998' + forgotPhone.replace(/\D/g, '');
-      const data = await requestResetPasswordOtp(fullPhone, actorType);
+      const data = await requestResetPasswordOtp(fullPhone);
       setForgotDevCode(data?.dev_code || '');
     } catch (e) {
       appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'login.errors.sendCodeFailed'));
@@ -183,7 +210,7 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       setResetLoading(true);
       setResetError('');
       const fullPhone = '+998' + forgotPhone.replace(/\D/g, '');
-      const data = await verifyResetPasswordOtp(fullPhone, forgotCode, newPassword, actorType);
+      const data = await verifyResetPasswordOtp(fullPhone, forgotCode, newPassword);
       setStep('phone');
       return data;
     } catch (e) {
@@ -197,7 +224,10 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     try {
       setGoogleLoading(true);
       const { token, refreshToken } = await googleLogin(actorType);
-      await finishLogin({ access_token: token, refresh_token: refreshToken });
+      await finishLogin(
+        { access_token: token, refresh_token: refreshToken },
+        { recordConsent: true }
+      );
     } catch (e) {
       if (e.message !== 'cancelled') {
         appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'login.errors.googleFailed'));
@@ -229,6 +259,15 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
         onGoogle={handleGoogle}
         googleLoading={googleLoading}
         actorType={actorType}
+        consent={consent}
+        onConsentChange={setConsent}
+        onPasswordLogin={() => {
+          setPhone(identifier);
+          setPassword('');
+          setLoginError('');
+          setPasswordFrom('phone');
+          setStep('password');
+        }}
       />
     ),
     code: (
@@ -247,6 +286,7 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
           identifierMode === 'phone'
             ? () => {
                 setPhone(identifier);
+                setPasswordFrom('code');
                 setStep('password');
               }
             : undefined
@@ -268,12 +308,14 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
           setForgotPhone(phone);
           setStep('forgot');
         }}
-        onBack={() => setStep('code')}
+        onBack={() => setStep(passwordFrom)}
       />
     ),
     completeProfile: (
       <CompleteProfileStep
         identifier={identifier}
+        initialFirstName={suggestedName.firstName}
+        initialLastName={suggestedName.lastName}
         onBack={() => setStep('code')}
         onSubmit={handleCompleteProfile}
         loading={completeLoading}

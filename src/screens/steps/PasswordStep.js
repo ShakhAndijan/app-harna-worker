@@ -1,13 +1,5 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { COLORS } from '../../constants/colors';
@@ -41,15 +33,15 @@ export default function PasswordStep({
   const identifierMode = detectIdentifierMode(identifier);
   const identifierLabel =
     identifierMode === 'phone' ? `+998 ${formatPhone(identifier)}` : identifier;
-  const ready = password.length >= 4 && !loading;
+  const ready = password.length >= 8 && !loading;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
+    <View style={styles.flex}>
+      {/* Klaviatura ochilganda parol maydoni bilan birga pastdagi "SMS orqali kirish" havolasi ham
+          ko'rinib turishi uchun yetarli `bottomOffset` qoldiriladi. */}
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.scroll}
+        bottomOffset={380}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -118,8 +110,8 @@ export default function PasswordStep({
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 

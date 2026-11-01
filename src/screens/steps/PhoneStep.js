@@ -1,23 +1,14 @@
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useRouter } from 'expo-router';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import PhoneInput from '../../components/login/PhoneInput';
-import ThemeSwitch from '../../components/ThemeSwitch';
 import EmailInput from '../../components/login/EmailInput';
-import { documentRoute } from '../../navigation/params';
+import ConsentCheck from '../../components/login/ConsentCheck';
 import BrandLogo from '../../components/BrandLogo';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -35,10 +26,20 @@ export default function PhoneStep({
   googleLoading,
   onBack,
   actorType = 'customer',
-  onSwitchActor,
+  consent = false,
+  onConsentChange,
+  onPasswordLogin,
 }) {
-  const router = useRouter();
   const { theme } = useTheme();
+  // Rozilik belgisiz kod yuborish, Telegram va Google ishlamaydi: belgi qizarib turadi.
+  const [consentError, setConsentError] = useState(false);
+  const guarded = (action) => () => {
+    if (!consent) {
+      setConsentError(true);
+      return;
+    }
+    action();
+  };
   const { t } = useLanguage();
   const isDark = theme.isDark !== false;
   const isUsta = actorType === 'worker';
@@ -51,30 +52,24 @@ export default function PhoneStep({
   const handleCta = () => onRequestOtp('sms');
 
   return (
-    <KeyboardAvoidingView
-      style={[s.flex, { backgroundColor: theme.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
+    <View style={[s.flex, { backgroundColor: theme.bg }]}>
+      {/* Klaviatura ochilganda maydon bilan birga pastdagi Google/Telegram tugmalari ham ko'rinib turishi uchun
+          yetarli `bottomOffset` qoldiriladi: kontent shuncha tepaga suriladi. */}
+      <KeyboardAwareScrollView
         contentContainerStyle={s.scroll}
+        bottomOffset={340}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* ── Top bar ── */}
         <View style={s.topBar}>
-          {onBack ? (
-            <TouchableOpacity
-              style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={onBack}
-              activeOpacity={0.75}
-            >
-              <Feather name="arrow-left" size={20} color={theme.text} />
-            </TouchableOpacity>
-          ) : (
-            <View />
-          )}
-
-          <ThemeSwitch />
+          <TouchableOpacity
+            style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
+            onPress={onBack}
+            activeOpacity={0.75}
+          >
+            <Feather name="arrow-left" size={20} color={theme.text} />
+          </TouchableOpacity>
         </View>
 
         <View style={s.body}>
@@ -90,12 +85,15 @@ export default function PhoneStep({
                     : { backgroundColor: 'rgba(240,122,48,0.08)' },
               ]}
             />
-            <BrandLogo width={310} style={{ marginBottom: 18 }} />
-            {isUsta && (
-              <View style={[s.ustaPill, { backgroundColor: theme.orange }]}>
-                <Text style={s.ustaPillTxt}>USTA</Text>
-              </View>
-            )}
+            {/* Logo + "USTA" yozuvi: HARNA dan keyin, yuqori o'ng burchakda */}
+            <View style={s.logoRow}>
+              <BrandLogo width={isUsta ? 262 : 310} />
+              {isUsta && (
+                <View style={[s.ustaPill, { backgroundColor: theme.orange }]}>
+                  <Text style={s.ustaPillTxt}>USTA</Text>
+                </View>
+              )}
+            </View>
             <Text style={[s.h1, { color: theme.text }]}>
               {isUsta ? t('login.phoneStep.titleUsta') : t('login.phoneStep.titleCustomer')}
             </Text>
@@ -103,35 +101,6 @@ export default function PhoneStep({
               {isUsta ? t('login.phoneStep.subtitleUsta') : t('login.phoneStep.subtitleCustomer')}
             </Text>
           </View>
-
-          {/* ── Statistika (usta) ── */}
-          {isUsta && (
-            <View style={s.statsRow}>
-              <View style={[s.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <MaterialCommunityIcons name="lightning-bolt" size={18} color={theme.gold} />
-                <Text style={[s.statVal, { color: theme.text }]}>5 000+</Text>
-                <Text style={[s.statLbl, { color: theme.muted }]}>
-                  {t('login.phoneStep.statMonthlyJobs')}
-                </Text>
-              </View>
-              <View style={[s.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <MaterialCommunityIcons name="wallet-outline" size={18} color={theme.green} />
-                <Text style={[s.statVal, { color: theme.text }]}>
-                  {t('login.phoneStep.statPayoutValue')}
-                </Text>
-                <Text style={[s.statLbl, { color: theme.muted }]}>
-                  {t('login.phoneStep.statPayout')}
-                </Text>
-              </View>
-              <View style={[s.statBox, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <Ionicons name="star" size={18} color={theme.gold} />
-                <Text style={[s.statVal, { color: theme.text }]}>4.8</Text>
-                <Text style={[s.statLbl, { color: theme.muted }]}>
-                  {t('login.phoneStep.statRating')}
-                </Text>
-              </View>
-            </View>
-          )}
 
           {/* ── Telefon yoki email maydoni ── */}
           <View style={s.fieldWrap}>
@@ -169,7 +138,7 @@ export default function PhoneStep({
           {/* ── CTA ── */}
           <TouchableOpacity
             style={[s.cta, !isReady && s.ctaDisabled]}
-            onPress={isReady ? handleCta : undefined}
+            onPress={isReady ? guarded(handleCta) : undefined}
             activeOpacity={0.85}
           >
             {loginLoading ? (
@@ -183,6 +152,26 @@ export default function PhoneStep({
               </>
             )}
           </TouchableOpacity>
+
+          {/* ── Parol bilan kirish (saytdagi oynadagi kabi, kodsiz) ── */}
+          {!!onPasswordLogin && (
+            <TouchableOpacity
+              style={s.passwordLink}
+              onPress={isIdentifierReady ? guarded(onPasswordLogin) : undefined}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              disabled={!isIdentifierReady}
+            >
+              <Text
+                style={[
+                  s.passwordLinkTxt,
+                  { color: isIdentifierReady ? theme.orange : theme.muted },
+                ]}
+              >
+                {t('login.phoneStep.usePassword')}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* ── Kirish usulini almashtirish: email <-> telefon ── */}
           <TouchableOpacity
@@ -202,33 +191,26 @@ export default function PhoneStep({
             </Text>
           </TouchableOpacity>
 
-          {/* ── Rolni almashtirish: mijoz <-> usta ── */}
-          {!!onSwitchActor && (
-            <TouchableOpacity
-              style={s.switchRow}
-              onPress={onSwitchActor}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-            >
-              <View style={[s.switchIcon, { backgroundColor: `${theme.orange}22` }]}>
-                <MaterialCommunityIcons
-                  name={isUsta ? 'account-outline' : 'account-hard-hat-outline'}
-                  size={16}
-                  color={theme.orange}
-                />
-              </View>
-              <Text style={[s.switchTxt, { color: theme.muted }]}>
-                {t(
-                  isUsta
-                    ? 'login.phoneStep.customerSwitchPrompt'
-                    : 'login.phoneStep.workerSwitchPrompt'
-                )}{' '}
-                <Text style={[s.switchLink, { color: theme.orange }]}>
-                  {t(isUsta ? 'login.phoneStep.customerSwitch' : 'login.phoneStep.workerSwitch')}
-                </Text>
-              </Text>
-            </TouchableOpacity>
-          )}
+          {/* ── Shaxsiy ma'lumotlarga rozilik (saytdagi kirish oynasidagi kabi) ── */}
+          <View style={s.consentWrap}>
+            <ConsentCheck
+              checked={consent}
+              error={consentError}
+              onToggle={() => {
+                setConsentError(false);
+                onConsentChange?.(!consent);
+              }}
+              colors={{
+                text: theme.muted,
+                link: theme.text,
+                border: theme.faint ?? theme.muted,
+                active: theme.orange,
+              }}
+            />
+            {consentError && !consent && (
+              <Text style={[s.consentErr, { color: theme.red }]}>{t('legal.check.required')}</Text>
+            )}
+          </View>
 
           {/* ── Social ── */}
           <View style={s.orWrap}>
@@ -243,7 +225,7 @@ export default function PhoneStep({
                 s.socBtn,
                 { borderColor: theme.border, backgroundColor: isDark ? theme.card : '#fff' },
               ]}
-              onPress={googleLoading ? undefined : onGoogle}
+              onPress={googleLoading ? undefined : guarded(onGoogle)}
               activeOpacity={0.85}
             >
               {googleLoading ? (
@@ -260,7 +242,11 @@ export default function PhoneStep({
                 { borderColor: theme.border, backgroundColor: theme.card },
                 !telegramReady && s.socBtnDisabled,
               ]}
-              onPress={anyOtpLoading || !telegramReady ? undefined : () => onRequestOtp('telegram')}
+              onPress={
+                anyOtpLoading || !telegramReady
+                  ? undefined
+                  : guarded(() => onRequestOtp('telegram'))
+              }
               activeOpacity={0.85}
             >
               {telegramLoading ? (
@@ -271,36 +257,19 @@ export default function PhoneStep({
               <Text style={[s.socTxt, { color: theme.text }]}>Telegram</Text>
             </TouchableOpacity>
           </View>
-
-          {/* ── Footer ── */}
-          <View style={s.footer}>
-            <Text style={[s.terms, { color: theme.muted }]}>
-              {t('login.phoneStep.termsPrefix')}{' '}
-              <Text
-                style={{ color: theme.text, fontWeight: '700' }}
-                onPress={() => router.push(documentRoute('terms'))}
-              >
-                {t('login.phoneStep.termsLink')}
-              </Text>
-              {' ' + t('login.phoneStep.termsAnd') + ' '}
-              <Text
-                style={{ color: theme.text, fontWeight: '700' }}
-                onPress={() => router.push(documentRoute('privacy'))}
-              >
-                {t('login.phoneStep.privacyLink')}
-              </Text>
-              {t('login.phoneStep.termsSuffix')}
-            </Text>
-          </View>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
   flex: { flex: 1 },
   scroll: { flexGrow: 1 },
+  consentWrap: { marginTop: 18, gap: 6 },
+  passwordLink: { alignSelf: 'center', paddingVertical: 4 },
+  passwordLinkTxt: { fontSize: 14, fontWeight: '700' },
+  consentErr: { fontSize: 12.5, fontWeight: '600', marginLeft: 36 },
 
   topBar: {
     flexDirection: 'row',
@@ -341,11 +310,17 @@ const s = StyleSheet.create({
     borderRadius: 100,
   },
   logo: { width: 220, height: 120 },
+  logoRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: 18,
+  },
   ustaPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    marginTop: -8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 7,
+    marginTop: -6,
   },
   ustaPillTxt: { color: '#fff', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
   h1: {
@@ -361,21 +336,6 @@ const s = StyleSheet.create({
     textAlign: 'center',
     maxWidth: 300,
   },
-
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-    paddingVertical: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  statVal: { fontSize: 14, fontWeight: '800' },
-  statLbl: { fontSize: 11, fontWeight: '500' },
 
   fieldWrap: { gap: 8 },
   fieldLabel: { fontSize: 13, fontWeight: '600' },

@@ -1,20 +1,20 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import useAuthGate from '../hooks/useAuthGate';
-import { clearTokens, getActorType } from '../utils/token';
+import { clearTokens } from '../utils/token';
 import { setSessionExpiredHandler } from '../utils/apiClient';
 import { revokeSession } from '../api/auth';
 import { clearCachedUser } from './UserContext';
 import { queryClient } from '../queries/client';
-import { unregisterPush } from '../utils/push';
+import { forgetPush, unregisterPush } from '../utils/push';
 
 const AuthContext = createContext({
   signedIn: false,
-  actorType: 'customer',
   checked: false,
   locked: false,
   unlocking: false,
   signIn: () => {},
   signOut: async () => {},
+  accountDeleted: async () => {},
   retryUnlock: () => {},
   abandonSession: () => {},
 });
@@ -23,19 +23,9 @@ const AuthContext = createContext({
 // ilova ochilganda saqlangan sessiyani (biometrik bilan) tekshirish bosqichi.
 export function AuthProvider({ children }) {
   const [signedIn, setSignedIn] = useState(false);
-  // Kim kirgani: 'customer' (mijoz) yoki 'worker' (usta). Marshrutlar shunga qarab ajraladi.
-  const [actorType, setActorType] = useState('customer');
-  const gate = useAuthGate({
-    onUnlocked: async () => {
-      setActorType((await getActorType()) === 'worker' ? 'worker' : 'customer');
-      setSignedIn(true);
-    },
-  });
+  const gate = useAuthGate({ onUnlocked: () => setSignedIn(true) });
 
-  const signIn = useCallback((actor) => {
-    setActorType(actor === 'worker' ? 'worker' : 'customer');
-    setSignedIn(true);
-  }, []);
+  const signIn = useCallback(() => setSignedIn(true), []);
 
   const endSession = useCallback(async () => {
     await clearTokens();
@@ -43,7 +33,6 @@ export function AuthProvider({ children }) {
     // Oldingi foydalanuvchining keshlangan ma'lumoti keyingisiga ko'rinmasin.
     queryClient.clear();
     setSignedIn(false);
-    setActorType('customer');
   }, []);
 
   // Foydalanuvchi o'zi chiqadi: refresh token serverda ham bekor qilinadi.
@@ -51,6 +40,12 @@ export function AuthProvider({ children }) {
     // Token hali yaroqli paytda: shu qurilmaga keyingi foydalanuvchi xabari kelmasin.
     await unregisterPush();
     await revokeSession();
+    await endSession();
+  }, [endSession]);
+
+  // Hisob o'chirildi: server sessiyani o'zi yopgan, shuning uchun tarmoq so'rovisiz faqat mahalliy tozalash.
+  const accountDeleted = useCallback(async () => {
+    await forgetPush();
     await endSession();
   }, [endSession]);
 
@@ -64,7 +59,6 @@ export function AuthProvider({ children }) {
   const value = useMemo(
     () => ({
       signedIn,
-      actorType,
       checked: gate.authChecked,
       locked: gate.locked,
       unlocking: gate.unlocking,
@@ -72,10 +66,10 @@ export function AuthProvider({ children }) {
       abandonSession: gate.abandonSession,
       signIn,
       signOut,
+      accountDeleted,
     }),
     [
       signedIn,
-      actorType,
       gate.authChecked,
       gate.locked,
       gate.unlocking,
@@ -83,6 +77,7 @@ export function AuthProvider({ children }) {
       gate.abandonSession,
       signIn,
       signOut,
+      accountDeleted,
     ]
   );
 

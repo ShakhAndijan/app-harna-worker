@@ -22,6 +22,8 @@ export const FEATURES = {
   overallStats: false,
   // Profildagi "Manzillarim" (saqlangan manzillar ro'yxati): hozircha yashirin, ekran saqlab qo'yilgan.
   savedAddresses: false,
+  // Mobil push (expo-notifications): vaqtincha o'chirilgan. Qaytarish uchun true qiling.
+  pushNotifications: false,
 };
 
 // Qo'llab-quvvatlash aloqa ma'lumotlari — saytdagi (dev.harna.uz/config.json) bilan bir xil.
@@ -32,18 +34,15 @@ export const SUPPORT_CONTACT = {
   telegram: '',
 };
 
+// Sayt manzili: maqola havolalari va ulashish uchun (dev.harna.uz/maqolalar/{slug}).
+export const SITE_URL = 'https://dev.harna.uz';
+
 export const ENDPOINTS = {
   AUTH_GOOGLE_LOGIN: `${API_BASE_URL}/api/v1/auth/google/login`,
-  CUSTOMER_LOGIN: `${API_BASE_URL}/api/v1/auth/customer/login`,
-  AUTH_CUSTOMER_START: `${API_BASE_URL}/api/v1/auth/customer/start`,
-  AUTH_CUSTOMER_VERIFY: `${API_BASE_URL}/api/v1/auth/customer/verify`,
-  AUTH_CUSTOMER_COMPLETE: `${API_BASE_URL}/api/v1/auth/customer/complete`,
-  // Usta (mutaxassis) kirishi: mijozniki bilan bir xil oqim, faqat boshqa aktor.
   WORKER_LOGIN: `${API_BASE_URL}/api/v1/auth/worker/login`,
   AUTH_WORKER_START: `${API_BASE_URL}/api/v1/auth/worker/start`,
   AUTH_WORKER_VERIFY: `${API_BASE_URL}/api/v1/auth/worker/verify`,
   AUTH_WORKER_COMPLETE: `${API_BASE_URL}/api/v1/auth/worker/complete`,
-  WORKER_ME: `${API_BASE_URL}/api/v1/workers/me`,
   AUTH_ME: `${API_BASE_URL}/api/v1/auth/me`,
   AUTH_REFRESH: `${API_BASE_URL}/api/v1/auth/refresh`,
   AUTH_LOGOUT: `${API_BASE_URL}/api/v1/auth/logout`,
@@ -53,9 +52,16 @@ export const ENDPOINTS = {
   NOTIFICATIONS_UNREAD: `${API_BASE_URL}/api/v1/notifications/unread-count`,
   NOTIFICATIONS_READ_ALL: `${API_BASE_URL}/api/v1/notifications/read-all`,
   NOTIFICATION_READ: (id) => `${API_BASE_URL}/api/v1/notifications/${id}/read`,
-  // Mobil push (FCM) qurilma tokenlari; yo'llar backend bilan kelishiladi (src/api/push.js).
+  // Mobil push (FCM) qurilma tokenlari (src/api/push.js).
   PUSH_DEVICES: `${API_BASE_URL}/api/v1/push/devices`,
   PUSH_DEVICES_REMOVE: `${API_BASE_URL}/api/v1/push/devices/remove`,
+  // Huquqiy hujjatlar, shaxsiy ma'lumotlarga rozilik va hisobni o'chirish (src/api/legal.js).
+  LEGAL: `${API_BASE_URL}/api/v1/legal`,
+  LEGAL_DOC: (key) => `${API_BASE_URL}/api/v1/legal/${key}`,
+  AUTH_PREFERENCES: `${API_BASE_URL}/api/v1/auth/preferences`,
+  AUTH_CONSENT: `${API_BASE_URL}/api/v1/auth/consent`,
+  ACCOUNT_DELETION: `${API_BASE_URL}/api/v1/auth/account/deletion`,
+  ACCOUNT_DELETE: `${API_BASE_URL}/api/v1/auth/account/delete`,
   FAQ: `${API_BASE_URL}/api/v1/faq`,
   SUPPORT_MESSAGES: `${API_BASE_URL}/api/v1/support/messages`,
   SUPPORT_CONVERSATION: `${API_BASE_URL}/api/v1/support/conversation`,
@@ -83,6 +89,26 @@ export const ENDPOINTS = {
   DISTRICTS: (regionId) => `${API_BASE_URL}/api/v1/regions/${regionId}/districts`,
   WORKERS: `${API_BASE_URL}/api/v1/workers`,
   WORKER_DETAIL: (workerId) => `${API_BASE_URL}/api/v1/workers/${workerId}`,
+  WORKER_COMPLAINTS: (workerId, page = 1, size = 10) =>
+    `${API_BASE_URL}/api/v1/workers/${workerId}/complaints?page=${page}&size=${size}`,
+  WORKER_COMPLAINT_OPTIONS: (workerId) =>
+    `${API_BASE_URL}/api/v1/workers/${workerId}/complaints/options`,
+  WORKER_COMPLAINT_CREATE: (workerId) => `${API_BASE_URL}/api/v1/workers/${workerId}/complaints`,
+  MY_COMPLAINTS: (page = 1, size = 20) =>
+    `${API_BASE_URL}/api/v1/customers/me/complaints?page=${page}&size=${size}`,
+  MY_COMPLAINT_WITHDRAW: (id) => `${API_BASE_URL}/api/v1/customers/me/complaints/${id}/withdraw`,
+  ARTICLES: (page = 1, size = 50) => `${API_BASE_URL}/api/v1/articles?page=${page}&size=${size}`,
+  ARTICLE: (slug) => `${API_BASE_URL}/api/v1/articles/${encodeURIComponent(slug)}`,
+  BUSINESS_ME: `${API_BASE_URL}/api/v1/business/me`,
+  BUSINESS_APPLY: `${API_BASE_URL}/api/v1/business/apply`,
+  BUSINESS_SITES: `${API_BASE_URL}/api/v1/business/sites`,
+  BUSINESS_SITE: (id) => `${API_BASE_URL}/api/v1/business/sites/${id}`,
+  BUSINESS_PLANS: `${API_BASE_URL}/api/v1/business/plans`,
+  BUSINESS_PLAN: (id) => `${API_BASE_URL}/api/v1/business/plans/${id}`,
+  BUSINESS_STATEMENT: (period) => `${API_BASE_URL}/api/v1/business/statements/${period}`,
+  BUSINESS_MEMBERS: `${API_BASE_URL}/api/v1/business/members`,
+  BUSINESS_MEMBER: (id) => `${API_BASE_URL}/api/v1/business/members/${id}`,
+  BUSINESS_LEAVE: `${API_BASE_URL}/api/v1/business/leave`,
   WORKER_LIKE: (workerId) => `${API_BASE_URL}/api/v1/workers/${workerId}/like`,
   WORKER_CERTIFICATES: (workerId, categoryId) =>
     categoryId
