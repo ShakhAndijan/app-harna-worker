@@ -16,7 +16,7 @@ export default function BrandLogo({ width = 160, dark, style }) {
       source={onDark ? DARK : LIGHT}
       style={[{ width, height: width / ASPECT }, style]}
       resizeMode="contain"
-      accessibilityLabel="harna.uz"
+      accessibilityLabel="harna.usta.uz"
     />
   );
 }

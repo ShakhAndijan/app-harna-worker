@@ -35,7 +35,7 @@ export const SUPPORT_CONTACT = {
 };
 
 // Sayt manzili: maqola havolalari va ulashish uchun (dev.harna.uz/maqolalar/{slug}).
-export const SITE_URL = 'https://dev.harna.uz';
+export const SITE_URL = 'https://harna.usta.uz';
 
 export const ENDPOINTS = {
   AUTH_GOOGLE_LOGIN: `${API_BASE_URL}/api/v1/auth/google/login`,

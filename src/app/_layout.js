@@ -22,7 +22,6 @@ import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { UserProvider } from '../context/UserContext';
 import { WalletProvider } from '../context/WalletContext';
 import { markStartup } from '../utils/startup';
-import usePushNotifications from '../hooks/usePushNotifications';
 import usePreferencesSync from '../hooks/usePreferencesSync';
 import ConsentGate from '../components/ConsentGate';
 import { FEATURES } from '../constants/config';
@@ -162,7 +161,8 @@ function PushNotifications() {
 }
 
 function PushNotificationsActive() {
-  usePushNotifications();
+  // Hook faqat push yoqilganda yuklanadi (expo-notifications importi Expo Go'da native modul talab qiladi).
+  require('../hooks/usePushNotifications').default();
   return null;
 }
 

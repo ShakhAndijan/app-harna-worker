@@ -362,7 +362,7 @@ export const uz = {
     refRewarded: 'Bonus olingan',
     refEarned: 'Topilgan bonus',
     refMsg:
-      'HARNA’da usta bo‘lib ishlang! Ro‘yxatdan o‘tishda mening kodimni kiriting: {code}. https://dev.harna.uz',
+      'HARNA’da usta bo‘lib ishlang! Ro‘yxatdan o‘tishda mening kodimni kiriting: {code}. https://harna.usta.uz',
     supportTitle: 'Yordam kerakmi?',
     supportText: 'Savolingiz bo‘lsa, qo‘llab-quvvatlash xizmatiga yozing',
     gateTitle: 'Buyurtma olish uchun profilni to‘ldiring',

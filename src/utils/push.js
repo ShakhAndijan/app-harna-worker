@@ -1,7 +1,7 @@
 import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import * as Notifications from 'expo-notifications';
+import { FEATURES } from '../constants/config';
 import { registerPushDevice, unregisterPushDevice } from '../api/push';
 import { devLog } from './log';
 
@@ -12,21 +12,29 @@ export const PUSH_CHANNEL_ID = 'default';
 const REGISTERED_KEY = 'push_registered'; // { token, locale } — backendga oxirgi yuborilgani
 const PROMPTED_KEY = 'push_prompted'; // ruxsat so'rovi bir marta o'zi chiqadi, keyin faqat sozlamadan
 
-// Ilova ochiq turganda ham xabar tepada ko'rinadi (aks holda Android ko'rsatmaydi).
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications faqat push yoqilganda yuklanadi: paket import qilinishi Expo Go'da native
+// modullarni (ExpoApplication) talab qiladi va ilovani yiqitadi.
+let loaded = null;
+function notif() {
+  if (!loaded) {
+    loaded = require('expo-notifications');
+    loaded.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      }),
+    });
+  }
+  return loaded;
+}
 
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
-  await Notifications.setNotificationChannelAsync(PUSH_CHANNEL_ID, {
-    name: 'harna.uz',
-    importance: Notifications.AndroidImportance.HIGH,
+  await notif().setNotificationChannelAsync(PUSH_CHANNEL_ID, {
+    name: 'harna.usta.uz',
+    importance: notif().AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: '#f97316',
   });
@@ -34,7 +42,8 @@ async function ensureChannel() {
 
 /** `status`: 'granted' | 'denied' | 'undetermined'; `canAskAgain`: tizim oynasini yana ko'rsatsa bo'ladimi. */
 export async function getPushPermission() {
-  const p = await Notifications.getPermissionsAsync();
+  if (!FEATURES.pushNotifications) return { status: 'granted', canAskAgain: false };
+  const p = await notif().getPermissionsAsync();
   return { status: p.status, canAskAgain: p.canAskAgain };
 }
 
@@ -43,6 +52,7 @@ export async function getPushPermission() {
  * Foydalanuvchi ikki marta rad etgan bo'lsa tizim oynani ko'rsatmaydi, shu sabab sozlamalar ochiladi.
  */
 export async function requestPushPermission() {
+  if (!FEATURES.pushNotifications) return false;
   await ensureChannel();
   const current = await getPushPermission();
   if (current.status === 'granted') return true;
@@ -50,7 +60,7 @@ export async function requestPushPermission() {
     Linking.openSettings().catch(() => {});
     return false;
   }
-  const res = await Notifications.requestPermissionsAsync({
+  const res = await notif().requestPermissionsAsync({
     ios: { allowAlert: true, allowBadge: true, allowSound: true },
   });
   return res.status === 'granted';
@@ -70,6 +80,7 @@ async function readRegistered() {
  * Hech qachon xato tashlamaydi: push ishlamasa ham ilova ishlashda davom etadi.
  */
 export async function registerPush({ locale, ask = false }) {
+  if (!FEATURES.pushNotifications) return false;
   try {
     await ensureChannel();
     let { status } = await getPushPermission();
@@ -80,7 +91,7 @@ export async function registerPush({ locale, ask = false }) {
     if (status !== 'granted') return false;
 
     // Android'da bu FCM tokeni (iOS'da APNs). Expo Go'da ishlamaydi: development/production build kerak.
-    const { data: token } = await Notifications.getDevicePushTokenAsync();
+    const { data: token } = await notif().getDevicePushTokenAsync();
     if (!token) return false;
 
     const saved = await readRegistered();
@@ -103,6 +114,7 @@ export async function registerPush({ locale, ask = false }) {
 
 /** Chiqishda tokenni backenddan o'chiradi; so'rov kirgan foydalanuvchi huquqi bilan ketadi, shuning uchun sessiya tugashidan oldin chaqiriladi. */
 export async function unregisterPush() {
+  if (!FEATURES.pushNotifications) return;
   const saved = await readRegistered();
   if (!saved?.token) return;
   try {

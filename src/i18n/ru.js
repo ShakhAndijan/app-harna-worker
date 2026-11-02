@@ -361,7 +361,7 @@ export const ru = {
     refRewarded: 'С бонусом',
     refEarned: 'Заработано бонусов',
     refMsg:
-      'Работайте мастером в HARNA! При регистрации введите мой код: {code}. https://dev.harna.uz',
+      'Работайте мастером в HARNA! При регистрации введите мой код: {code}. https://harna.usta.uz',
     supportTitle: 'Нужна помощь?',
     supportText: 'Есть вопрос — напишите в службу поддержки',
     gateTitle: 'Заполните профиль, чтобы брать заказы',

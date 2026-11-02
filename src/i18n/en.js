@@ -360,7 +360,7 @@ export const en = {
     refInvited: 'Invited',
     refRewarded: 'Rewarded',
     refEarned: 'Bonus earned',
-    refMsg: 'Work as a pro on HARNA! Enter my code when you sign up: {code}. https://dev.harna.uz',
+    refMsg: 'Work as a pro on HARNA! Enter my code when you sign up: {code}. https://harna.usta.uz',
     supportTitle: 'Need help?',
     supportText: 'Have a question? Write to our support team',
     gateTitle: 'Complete your profile to take orders',
