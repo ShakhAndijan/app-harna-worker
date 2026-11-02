@@ -127,6 +127,25 @@ function RootNavigator() {
                 <Stack.Screen name="company-plan" />
                 <Stack.Screen name="company-member" />
                 <Stack.Screen name="company-statement" />
+                <Stack.Screen name="stats" />
+                <Stack.Screen name="status" />
+                <Stack.Screen name="calendar" />
+                <Stack.Screen name="location" />
+                <Stack.Screen name="settings" />
+                <Stack.Screen name="listing-edit" />
+                <Stack.Screen name="schedule" />
+                <Stack.Screen name="my-categories" />
+                <Stack.Screen name="my-reviews" />
+                <Stack.Screen name="profile-edit" />
+                <Stack.Screen name="referral" />
+                <Stack.Screen name="pro" />
+                <Stack.Screen name="portfolio" />
+                <Stack.Screen name="certificates" />
+                <Stack.Screen name="top" />
+                <Stack.Screen name="brigade" />
+                <Stack.Screen name="complaints" />
+                <Stack.Screen name="account" />
+                <Stack.Screen name="order-chat/[id]" />
               </Stack.Protected>
               <Stack.Protected guard={!signedIn}>
                 <Stack.Screen name="index" />

@@ -1,6 +1,5 @@
-import WalletScreen from '../screens/WalletScreen';
-import useGoBack from '../navigation/useGoBack';
+import WalletScreen from '../worker/screens/WalletScreen';
 
 export default function WalletRoute() {
-  return <WalletScreen onBack={useGoBack()} />;
+  return <WalletScreen />;
 }

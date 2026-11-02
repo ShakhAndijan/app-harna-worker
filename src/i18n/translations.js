@@ -9,14 +9,26 @@ import { ru } from './ru';
 import { en } from './en';
 import { translitDeep } from './translit';
 import { crOverrides } from './crOverrides';
+import { workerTexts } from './workerTexts';
+import { workerMoreTexts } from './workerMoreTexts';
+import { workerSiteTexts } from './workerSiteTexts';
 
-export const translations = { uz, ru, en };
+// Usta ilovasi matnlari `w` kalitida (workerTexts.js): t('w.home.hello').
+const uzAll = {
+  ...uz,
+  w: { ...workerTexts.uz, more: workerMoreTexts.uz, site: workerSiteTexts.uz },
+};
+export const translations = {
+  uz: uzAll,
+  ru: { ...ru, w: { ...workerTexts.ru, more: workerMoreTexts.ru, site: workerSiteTexts.ru } },
+  en: { ...en, w: { ...workerTexts.en, more: workerMoreTexts.en, site: workerSiteTexts.en } },
+};
 
 let cr = null;
 Object.defineProperty(translations, 'cr', {
   enumerable: true,
   get() {
-    cr ??= mergeDeep(translitDeep(uz), crOverrides);
+    cr ??= mergeDeep(translitDeep(uzAll), crOverrides);
     return cr;
   },
 });

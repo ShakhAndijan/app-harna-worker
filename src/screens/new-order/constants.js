@@ -39,6 +39,6 @@ export const REGION_COORDS = {
 export const TIMING_KIND_MAP = {
   urgent: 'urgent',
   today: 'today',
-  date: 'scheduled',
+  date: 'on_date',
   flexible: 'flexible',
 };

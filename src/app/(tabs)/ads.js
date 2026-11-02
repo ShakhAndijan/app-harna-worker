@@ -1,9 +1,6 @@
-import { useRouter } from 'expo-router';
-import ListingReelsScreen from '../../screens/ListingReelsScreen';
+import ListingsScreen from '../../worker/screens/ListingsScreen';
 
-// Pastki menyudagi "E'lonlar" tabi: e'lonlar to'g'ridan-to'g'ri Reels ko'rinishida; qidiruv va filtrlar
-// tepadagi qidiruv tugmasi orqali alohida ro'yxat ekranida.
+// Pastki menyudagi "E'lonlar" tabi: ustaning o'z e'lonlari, yangi e'lon qo'shish tugmasi bilan.
 export default function AdsTab() {
-  const router = useRouter();
-  return <ListingReelsScreen tab onSearch={() => router.push('/listings')} />;
+  return <ListingsScreen />;
 }

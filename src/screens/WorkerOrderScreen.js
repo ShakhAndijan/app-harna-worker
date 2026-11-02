@@ -491,6 +491,17 @@ export default function WorkerOrderScreen({ id }) {
             </>
           )}
 
+          {(!!mine || awaitingAgree || inProgress) && !open && (
+            <Btn
+              busy={busy}
+              t={t}
+              kind="ghost"
+              icon="chatbubbles-outline"
+              label={tr('w.order.chat')}
+              onPress={() => router.push(`/order-chat/${order.id}`)}
+            />
+          )}
+
           {awaitingAgree && (
             <>
               <Btn

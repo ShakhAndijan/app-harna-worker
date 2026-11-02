@@ -1,5 +1,5 @@
-import ZakazchiProfileScreen from '../../screens/ZakazchiProfileScreen';
+import ProfileScreen from '../../worker/screens/ProfileScreen';
 
 export default function ProfileRoute() {
-  return <ZakazchiProfileScreen />;
+  return <ProfileScreen />;
 }
