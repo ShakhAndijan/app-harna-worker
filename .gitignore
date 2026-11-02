@@ -48,3 +48,6 @@ credentials.json
 
 # Firebase (FCM) kaliti: EAS da GOOGLE_SERVICES_JSON file o'zgaruvchisi sifatida beriladi
 google-services.json
+
+# Word/Excel vaqtinchalik qulf fayllari
+~$*
