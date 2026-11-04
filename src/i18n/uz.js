@@ -1533,6 +1533,7 @@ export const uz = {
     },
   },
   avatarPicker: {
+    permissionTitle: 'Ruxsat kerak',
     title: "Profil rasmini o'zgartirish",
     camera: 'Kamera',
     gallery: 'Galereya',
@@ -1664,6 +1665,9 @@ export const uz = {
     errorSave: "Manzilni saqlab bo'lmadi",
   },
   newOrder: {
+    locationPermissionTitle: 'Joylashuvga ruxsat kerak',
+    locationPermissionMsg: 'Manzilni aniqlash uchun joylashuvga ruxsat bering.',
+    locationError: 'Joylashuvni aniqlab bo‘lmadi. Xaritadan qo‘lda belgilang.',
     headerTitle: 'Yangi buyurtma',
     headerSubtitle: "Kerakli xizmatni tanlang, tafsilotlarni yozing — ustalar sizga bog'lanadi.",
     targetWorkerLabel: 'Tanlangan usta',

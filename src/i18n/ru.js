@@ -1528,6 +1528,7 @@ export const ru = {
     },
   },
   avatarPicker: {
+    permissionTitle: 'Нужно разрешение',
     title: 'Изменить фото профиля',
     camera: 'Камера',
     gallery: 'Галерея',
@@ -1655,6 +1656,9 @@ export const ru = {
     errorSave: 'Не удалось сохранить адрес',
   },
   newOrder: {
+    locationPermissionTitle: 'Нужен доступ к геопозиции',
+    locationPermissionMsg: 'Разрешите доступ к геопозиции, чтобы определить адрес.',
+    locationError: 'Не удалось определить местоположение. Отметьте точку на карте вручную.',
     headerTitle: 'Новый заказ',
     headerSubtitle: 'Выберите услугу и опишите детали — мастера свяжутся с вами.',
     targetWorkerLabel: 'Выбранный мастер',

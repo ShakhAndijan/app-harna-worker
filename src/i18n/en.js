@@ -1523,6 +1523,7 @@ export const en = {
     },
   },
   avatarPicker: {
+    permissionTitle: 'Permission needed',
     title: 'Change profile photo',
     camera: 'Camera',
     gallery: 'Gallery',
@@ -1650,6 +1651,9 @@ export const en = {
     errorSave: 'Could not save the address',
   },
   newOrder: {
+    locationPermissionTitle: 'Location permission needed',
+    locationPermissionMsg: 'Allow location access so we can find your address.',
+    locationError: 'Couldn’t get your location. Mark the spot on the map yourself.',
     headerTitle: 'New order',
     headerSubtitle: 'Pick the service you need and describe it — pros will reach out to you.',
     targetWorkerLabel: 'Selected pro',
