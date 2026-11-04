@@ -49,8 +49,12 @@ export default function CategoriesScreen() {
   const types = useQuery({
     queryKey: ['w', 'priceTypes'],
     queryFn: api.getPriceTypes,
-    enabled: adding,
   });
+  const [editId, setEditId] = useState(null);
+  const [ePrice, setEPrice] = useState('');
+  const [eMin, setEMin] = useState('');
+  const [eType, setEType] = useState(null);
+  const [eNego, setENego] = useState(false);
 
   const onError = (e) => appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'w.actionFailed'));
   const refresh = () => qc.invalidateQueries({ queryKey: ['w', 'me'] });
@@ -72,6 +76,40 @@ export default function CategoriesScreen() {
       setTypeId(null);
       refresh();
     },
+    onError,
+  });
+  const startEdit = (c) => {
+    setEditId(c.category.id);
+    setEPrice(num(c.price) > 0 ? String(Math.round(num(c.price))) : '');
+    setEMin(num(c.min_price) > 0 ? String(Math.round(num(c.min_price))) : '');
+    setEType(c.price_type?.id ?? c.price_type_id ?? null);
+    setENego(!!c.is_negotiable);
+  };
+  const clean = (v) => v.replace(/\s/g, '');
+  const save = useMutation({
+    mutationFn: () =>
+      api.updateMyCategory(editId, {
+        price_type_id: eType ?? undefined,
+        price: eNego || !ePrice.trim() ? null : clean(ePrice),
+        min_price: eNego && eMin.trim() ? clean(eMin) : null,
+        is_negotiable: eNego,
+      }),
+    onSuccess: () => {
+      setEditId(null);
+      refresh();
+    },
+    onError,
+  });
+  // Asosiy qilish: tanlanganni belgilab, boshqalardan olib tashlaymiz.
+  const makePrimary = useMutation({
+    mutationFn: async (id) => {
+      await api.updateMyCategory(id, { is_primary: true });
+      const others = (me.data?.categories || []).filter(
+        (x) => x.is_primary && x.category.id !== id
+      );
+      for (const o of others) await api.updateMyCategory(o.category.id, { is_primary: false });
+    },
+    onSuccess: refresh,
     onError,
   });
   const remove = useMutation({
@@ -112,20 +150,72 @@ export default function CategoriesScreen() {
           {c.experience_years != null ? (
             <Muted>{t('w.cat.experience', { n: c.experience_years })}</Muted>
           ) : null}
-          <Btn
-            kind="ghost"
-            label={t('w.delete')}
-            style={{ height: 38 }}
-            onPress={() =>
-              appConfirm({
-                title: t('w.delete'),
-                message: t('w.cat.deleteAsk'),
-                confirmLabel: t('w.delete'),
-                destructive: true,
-                onConfirm: () => remove.mutate(c.id),
-              })
-            }
-          />
+          {editId === c.category.id ? (
+            <>
+              <Btn
+                kind={eNego ? 'primary' : 'ghost'}
+                label={t('w.cat.negotiable')}
+                style={{ height: 38 }}
+                onPress={() => setENego((v) => !v)}
+              />
+              {eNego ? (
+                <Field
+                  label={t('w.cat.minPrice')}
+                  value={eMin}
+                  onChangeText={setEMin}
+                  keyboardType="numeric"
+                />
+              ) : (
+                <Field
+                  label={t('w.cat.price')}
+                  value={ePrice}
+                  onChangeText={setEPrice}
+                  keyboardType="numeric"
+                />
+              )}
+              {types.data?.length ? (
+                <Chips
+                  value={eType}
+                  onChange={setEType}
+                  options={types.data.map((p) => ({ value: p.id, label: p.name }))}
+                />
+              ) : null}
+              <Btn label={t('w.save')} loading={save.isPending} onPress={() => save.mutate()} />
+              <Btn kind="ghost" label={t('w.cancel')} onPress={() => setEditId(null)} />
+            </>
+          ) : (
+            <>
+              <Btn
+                kind="ghost"
+                label={t('w.cat.edit')}
+                style={{ height: 38 }}
+                onPress={() => startEdit(c)}
+              />
+              {!c.is_primary ? (
+                <Btn
+                  kind="ghost"
+                  label={t('w.cat.makePrimary')}
+                  style={{ height: 38 }}
+                  loading={makePrimary.isPending}
+                  onPress={() => makePrimary.mutate(c.category.id)}
+                />
+              ) : null}
+              <Btn
+                kind="ghost"
+                label={t('w.delete')}
+                style={{ height: 38 }}
+                onPress={() =>
+                  appConfirm({
+                    title: t('w.delete'),
+                    message: t('w.cat.deleteAsk'),
+                    confirmLabel: t('w.delete'),
+                    destructive: true,
+                    onConfirm: () => remove.mutate(c.category.id),
+                  })
+                }
+              />
+            </>
+          )}
         </Card>
       ))}
 

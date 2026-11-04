@@ -21,8 +21,7 @@ import { useLanguage } from '../context/LanguageContext';
 import usePullRefresh from '../hooks/usePullRefresh';
 import useTabBarSpace from '../navigation/useTabBarSpace';
 import { formatNumber } from '../utils/format';
-import { useUnreadNotifications, useNotificationsFeed } from '../queries/notifications';
-import { notificationText, notificationDetail } from './notifications/utils';
+import { useUnreadNotifications } from '../queries/notifications';
 import {
   useWorkerMe,
   useWorkerBalance,
@@ -51,7 +50,7 @@ export default function WorkerHomeScreen() {
   const openOrders = useOpenOrders();
   const assigned = useAssignedOrders();
   const toggle = useSetAvailability();
-  const stats = useWorkerStats(7);
+  const stats = useWorkerStats(30);
   const contest = useContest();
   const referral = useReferral();
 
@@ -78,8 +77,6 @@ export default function WorkerHomeScreen() {
         .sort((x, y) => y.p - x.p)
         .slice(0, 6)
         .map((x) => x.o);
-  const feed = useNotificationsFeed();
-  const recent = feed.items.slice(0, 3);
   const nextJob = (assigned.data ?? []).find((o) => ['accepted', 'active'].includes(o.status));
   const location = worker?.district || worker?.region || '';
   const holder = [worker?.first_name, worker?.last_name].filter(Boolean).join(' ').toUpperCase();
@@ -326,53 +323,6 @@ export default function WorkerHomeScreen() {
 
           {/* ── Oylik tanlov ── */}
           {!!contest.data?.enabled && <ContestCard c={contest.data} t={t} tr={tr} />}
-
-          {/* ── So'nggi xabarlar ── */}
-          {recent.length > 0 && (
-            <View>
-              <SectionTitle
-                title={tr('workerHome.recent')}
-                action={tr('workerHome.seeAll')}
-                onAction={() => router.push('/notifications')}
-                t={t}
-              />
-              <View
-                style={[
-                  s.results,
-                  { backgroundColor: t.card, borderColor: t.border, paddingVertical: 6 },
-                ]}
-              >
-                {recent.map((n, i) => (
-                  <TouchableOpacity
-                    key={n.id}
-                    activeOpacity={0.8}
-                    onPress={() => router.push('/notifications')}
-                    style={[s.notifRow, i > 0 && { borderTopWidth: 1, borderTopColor: t.border }]}
-                  >
-                    <View
-                      style={[s.dotSmall, { backgroundColor: n.isRead ? t.faint : t.orange }]}
-                    />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{ color: t.text, fontSize: 13.5, lineHeight: 18 }}
-                        numberOfLines={2}
-                      >
-                        {notificationText(n, tr)}
-                      </Text>
-                      {!!notificationDetail(n) && (
-                        <Text
-                          style={{ color: t.muted, fontSize: 12, marginTop: 2 }}
-                          numberOfLines={1}
-                        >
-                          {notificationDetail(n)}
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
 
           {/* ── Bilib qo'ying (sayt faktlari) ── */}
           <SectionTitle title={tr('workerHome.factsTitle')} t={t} />

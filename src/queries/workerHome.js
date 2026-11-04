@@ -49,7 +49,7 @@ export function useSetAvailability() {
   });
 }
 
-export const useWorkerStats = (days = 7) =>
+export const useWorkerStats = (days = 30) =>
   useQuery({ queryKey: ['worker', 'stats', days], queryFn: () => getWorkerStats(days) });
 // Tanlov o'chirilgan yoki mavjud bo'lmasa jimgina yashiriladi (xato ko'rsatilmaydi).
 export const useContest = () =>

@@ -25,6 +25,7 @@ import { markStartup } from '../utils/startup';
 import usePreferencesSync from '../hooks/usePreferencesSync';
 import ConsentGate from '../components/ConsentGate';
 import { FEATURES } from '../constants/config';
+import '../utils/devWarnings';
 
 // Native splash birinchi ekran tayyor bo'lguncha turadi: bo'sh ekran va alohida yuklagich bosqichi yo'q.
 SplashScreen.preventAutoHideAsync();

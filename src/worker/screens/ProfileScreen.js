@@ -33,11 +33,55 @@ function MenuItem({ icon, label, onPress, danger }) {
   );
 }
 
-export default function ProfileScreen() {
-  const router = useRouter();
+// Til, mavzu va "Chiqish": profil yuklanmagan (masalan 403) holatda ham doim ko'rinib turadi.
+function SessionCards() {
   const { theme, toggleTheme } = useTheme();
   const { t, language, setLanguage } = useLanguage();
   const { signOut } = useAuth();
+  return (
+    <>
+      <Card>
+        <Muted>{t('w.profile.language')}</Muted>
+        <Chips
+          value={language}
+          onChange={setLanguage}
+          options={[
+            { value: 'uz', label: "O'zbekcha" },
+            { value: 'ru', label: 'Русский' },
+            { value: 'en', label: 'English' },
+          ]}
+        />
+        <MenuItem
+          icon={theme.isDark ? 'sunny-outline' : 'moon-outline'}
+          label={t('w.profile.theme')}
+          onPress={toggleTheme}
+        />
+      </Card>
+
+      <Card style={{ paddingVertical: 6 }}>
+        <MenuItem
+          icon="log-out-outline"
+          danger
+          label={t('w.profile.logout')}
+          onPress={() =>
+            appConfirm({
+              title: t('w.profile.logout'),
+              message: t('w.profile.logoutAsk'),
+              confirmLabel: t('w.profile.logout'),
+              destructive: true,
+              onConfirm: signOut,
+            })
+          }
+        />
+      </Card>
+    </>
+  );
+}
+
+export default function ProfileScreen() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const { t } = useLanguage();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['w', 'me'], queryFn: api.getMe });
 
@@ -66,6 +110,8 @@ export default function ProfileScreen() {
     return (
       <Screen back={false} title={t('w.profile.title')}>
         <ErrorBox error={q.error} onRetry={q.refetch} />
+        <Muted style={{ textAlign: 'center' }}>{t('w.profile.notWorkerHint')}</Muted>
+        <SessionCards />
       </Screen>
     );
   }
@@ -247,40 +293,7 @@ export default function ProfileScreen() {
         />
       </Card>
 
-      <Card>
-        <Muted>{t('w.profile.language')}</Muted>
-        <Chips
-          value={language}
-          onChange={setLanguage}
-          options={[
-            { value: 'uz', label: "O'zbekcha" },
-            { value: 'ru', label: 'Русский' },
-            { value: 'en', label: 'English' },
-          ]}
-        />
-        <MenuItem
-          icon={theme.isDark ? 'sunny-outline' : 'moon-outline'}
-          label={t('w.profile.theme')}
-          onPress={toggleTheme}
-        />
-      </Card>
-
-      <Card style={{ paddingVertical: 6 }}>
-        <MenuItem
-          icon="log-out-outline"
-          danger
-          label={t('w.profile.logout')}
-          onPress={() =>
-            appConfirm({
-              title: t('w.profile.logout'),
-              message: t('w.profile.logoutAsk'),
-              confirmLabel: t('w.profile.logout'),
-              destructive: true,
-              onConfirm: signOut,
-            })
-          }
-        />
-      </Card>
+      <SessionCards />
     </Screen>
   );
 }

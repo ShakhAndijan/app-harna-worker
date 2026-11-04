@@ -28,7 +28,7 @@ export function completenessItems(me) {
     ['photo', !!me?.profile_photo],
     ['bio', !!me?.bio],
     ['cats', cats.length > 0],
-    ['prices', cats.length > 0 && cats.every((c) => num(c.price) > 0)],
+    ['prices', cats.length > 0 && cats.some((c) => num(c.price) > 0 || c.is_negotiable)],
     ['schedule', !!me?.schedule && (Array.isArray(me.schedule) ? me.schedule.length > 0 : true)],
     ['map', me?.latitude != null && me?.longitude != null],
     ['phone', !!me?.is_phone_verified],
@@ -109,7 +109,7 @@ export default function StatsScreen() {
       <Segments
         value={days}
         onChange={setDays}
-        options={[7, 30, 90].map((n) => ({ value: n, label: t('w.more.days', { n }) }))}
+        options={[30, 90].map((n) => ({ value: n, label: t('w.more.days', { n }) }))}
       />
       {q.isPending ? (
         <Loading />
@@ -126,7 +126,7 @@ export default function StatsScreen() {
         <>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {STAT_CARDS.map(([label, key, icon]) => {
-              const value = key ? d[key] : days <= 7 ? d.views_7d : d.views_30d;
+              const value = key ? d[key] : d.views_30d;
               return (
                 <Card key={label} style={{ width: '48%', flexGrow: 1 }}>
                   <Ionicons name={icon} size={22} color={theme.orange} />
@@ -142,6 +142,9 @@ export default function StatsScreen() {
               {Math.round((num(d.offers_chosen) / num(d.offers_sent)) * 100)}%
             </Muted>
           ) : null}
+          <Muted>
+            {t('w.site.views7')}: {num(d.views_7d)}
+          </Muted>
           <Card>
             <H>{t('w.site.orders')}</H>
             <Muted>

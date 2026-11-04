@@ -270,7 +270,9 @@ export function Segments({ options, value, onChange }) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, paddingBottom: 4 }}
+      // ScrollView standart holatda flexGrow:1 — ustun ichida bo'sh joyni to'ldirib, chiplarni cho'zib yuborardi.
+      style={{ flexGrow: 0 }}
+      contentContainerStyle={{ gap: 8, paddingBottom: 4, alignItems: 'center' }}
     >
       {options.map((o) => {
         const on = o.value === value;
@@ -294,6 +296,39 @@ export function Segments({ options, value, onChange }) {
         );
       })}
     </ScrollView>
+  );
+}
+
+// Teng kenglikdagi zamonaviy "switch" ko'rinishidagi tablar (2–3 ta bo'lim uchun).
+export function SegmentedTabs({ options, value, onChange }) {
+  const { theme } = useTheme();
+  return (
+    <View
+      style={[s.tabsWrap, { backgroundColor: theme.card, borderColor: theme.border }]}
+      accessibilityRole="tablist"
+    >
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <TouchableOpacity
+            key={o.value}
+            onPress={() => onChange(o.value)}
+            activeOpacity={0.85}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            style={[s.tabItem, on && { backgroundColor: theme.orange }]}
+          >
+            {o.icon ? <Ionicons name={o.icon} size={16} color={on ? '#fff' : theme.muted} /> : null}
+            <Text
+              numberOfLines={1}
+              style={{ color: on ? '#fff' : theme.muted, fontWeight: '700', fontSize: 14 }}
+            >
+              {o.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
   );
 }
 
@@ -323,7 +358,10 @@ export function ErrorBox({ error, onRetry }) {
   const { theme } = useTheme();
   return (
     <View style={s.center}>
-      <Text style={{ color: theme.red, textAlign: 'center' }}>
+      <View style={[s.stateIcon, { backgroundColor: `${theme.red}1f` }]}>
+        <Ionicons name="alert-circle-outline" size={30} color={theme.red} />
+      </View>
+      <Text style={{ color: theme.text, textAlign: 'center', fontWeight: '600' }}>
         {error?.message || t('w.loadFailed')}
       </Text>
       {onRetry ? (
@@ -337,8 +375,10 @@ export function Empty({ icon = 'file-tray-outline', text }) {
   const { theme } = useTheme();
   return (
     <View style={s.center}>
-      <Ionicons name={icon} size={40} color={theme.faint} />
-      <Muted style={{ marginTop: 10, textAlign: 'center' }}>{text}</Muted>
+      <View style={[s.stateIcon, { backgroundColor: `${theme.orange}1f` }]}>
+        <Ionicons name={icon} size={30} color={theme.orange} />
+      </View>
+      <Muted style={{ textAlign: 'center' }}>{text}</Muted>
     </View>
   );
 }
@@ -386,5 +426,35 @@ const s = StyleSheet.create({
   chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
   seg: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 9 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, minHeight: 160 },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    minHeight: 160,
+    gap: 10,
+  },
+  stateIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabsWrap: {
+    flexDirection: 'row',
+    padding: 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+  },
+  tabItem: {
+    flex: 1,
+    height: 42,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
 });

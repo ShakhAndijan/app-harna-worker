@@ -204,6 +204,8 @@ const uz = {
     theme: 'Mavzuni almashtirish',
     logout: 'Chiqish',
     logoutAsk: 'Hisobdan chiqasizmi?',
+    notWorkerHint:
+      "Bu hisob usta sifatida ro'yxatdan o'tmagan yoki ruxsati yo'q bo'lishi mumkin. Usta hisobi bilan qayta kiring.",
   },
   edit: {
     firstName: 'Ism',
@@ -221,6 +223,10 @@ const uz = {
     price: "Narx (so'm)",
     experience: 'Tajriba: {n} yil',
     deleteAsk: "Yo'nalish o'chirilsinmi?",
+    edit: 'Tahrirlash',
+    makePrimary: 'Asosiy qilish',
+    negotiable: 'Narx kelishiladi',
+    minPrice: "Minimal narx (so'm)",
   },
   schedule: {
     hint: 'Ish kunlari va soatlarini belgilang. Belgilanmagan kunlar dam olish kuni hisoblanadi.',
@@ -512,6 +518,8 @@ const ru = {
     theme: 'Сменить тему',
     logout: 'Выйти',
     logoutAsk: 'Выйти из аккаунта?',
+    notWorkerHint:
+      'Этот аккаунт, возможно, не зарегистрирован как мастер или не имеет доступа. Войдите под аккаунтом мастера.',
   },
   edit: {
     firstName: 'Имя',
@@ -529,6 +537,10 @@ const ru = {
     price: 'Цена (сум)',
     experience: 'Опыт: {n} лет',
     deleteAsk: 'Удалить направление?',
+    edit: 'Изменить',
+    makePrimary: 'Сделать основным',
+    negotiable: 'Цена договорная',
+    minPrice: 'Минимальная цена (сум)',
   },
   schedule: {
     hint: 'Отметьте рабочие дни и часы. Неотмеченные дни считаются выходными.',
@@ -817,6 +829,8 @@ const en = {
     theme: 'Switch theme',
     logout: 'Sign out',
     logoutAsk: 'Sign out of your account?',
+    notWorkerHint:
+      'This account may not be registered as a specialist or may lack access. Sign in with a specialist account.',
   },
   edit: {
     firstName: 'First name',
@@ -834,6 +848,10 @@ const en = {
     price: 'Price (UZS)',
     experience: 'Experience: {n} years',
     deleteAsk: 'Remove this trade?',
+    edit: 'Edit',
+    makePrimary: 'Make primary',
+    negotiable: 'Price negotiable',
+    minPrice: 'Minimum price (UZS)',
   },
   schedule: {
     hint: 'Mark your working days and hours. Days not marked are days off.',

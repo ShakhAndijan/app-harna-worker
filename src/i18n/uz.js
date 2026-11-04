@@ -1345,7 +1345,7 @@ export const uz = {
       accepted: 'Buyurtmangiz qabul qilindi',
       agreed: 'Shartlar kelishildi — ish boshlanadi',
       cancelled: 'Buyurtma bekor qilindi',
-      completed: 'Buyurtma yakunlandi',
+      completed: 'Buyurtma yakunlandi — mijozni baholang',
       message: 'Buyurtma bo‘yicha yangi xabar',
       negotiation_ended: 'Kelishuv bo‘lmadi — buyurtma qayta ochildi',
       new: 'Sizga mos yangi buyurtma',

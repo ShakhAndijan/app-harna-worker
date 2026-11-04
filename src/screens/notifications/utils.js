@@ -47,7 +47,8 @@ export function notificationKey(n) {
 
 export function notificationText(n, tr) {
   const key = notificationKey(n);
-  for (const path of [`notifTypes.customer.${key}`, `notifTypes.${key}`]) {
+  // Usta ilovasi: avval umumiy (usta uchun) matn, mijoz matni faqat zaxira sifatida.
+  for (const path of [`notifTypes.${key}`, `notifTypes.customer.${key}`]) {
     const v = tr(path);
     if (typeof v === 'string' && v !== path) return v;
   }
