@@ -344,7 +344,6 @@ export const ru = {
     },
   },
   workerHome: {
-    allOrders: 'Все заказы и мои работы',
     refReward: 'За каждого друга',
     refStep1: 'Отправьте код',
     refStep2: 'Друг регистрируется',

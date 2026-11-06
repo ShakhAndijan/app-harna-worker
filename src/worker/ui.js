@@ -316,15 +316,24 @@ export function SegmentedTabs({ options, value, onChange }) {
             activeOpacity={0.85}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
+            accessibilityLabel={o.label}
             style={[s.tabItem, on && { backgroundColor: theme.orange }]}
           >
-            {o.icon ? <Ionicons name={o.icon} size={16} color={on ? '#fff' : theme.muted} /> : null}
-            <Text
-              numberOfLines={1}
-              style={{ color: on ? '#fff' : theme.muted, fontWeight: '700', fontSize: 14 }}
-            >
-              {o.label}
-            </Text>
+            {o.icon ? (
+              <Ionicons
+                name={o.icon}
+                size={o.iconOnly ? 24 : 16}
+                color={on ? '#fff' : theme.muted}
+              />
+            ) : null}
+            {o.iconOnly ? null : (
+              <Text
+                numberOfLines={1}
+                style={{ color: on ? '#fff' : theme.muted, fontWeight: '700', fontSize: 14 }}
+              >
+                {o.label}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}

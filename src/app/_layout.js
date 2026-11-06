@@ -134,6 +134,7 @@ function RootNavigator() {
                 <Stack.Screen name="location" />
                 <Stack.Screen name="settings" />
                 <Stack.Screen name="listing-edit" />
+                <Stack.Screen name="my-reels" />
                 <Stack.Screen name="schedule" />
                 <Stack.Screen name="my-categories" />
                 <Stack.Screen name="my-reviews" />

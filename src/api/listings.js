@@ -29,6 +29,8 @@ export function mapListing(l) {
     isFavorite: !!l.is_favorite,
     commentCount: l.comment_count ?? 0,
     likeCount: l.like_count ?? 0,
+    // Backend hozircha ko'rishlar sonini qaytarmaydi: maydon kelsagina ko'rsatiladi.
+    viewCount: l.view_count ?? l.views_count ?? l.views ?? null,
     isLiked: !!l.is_liked,
     worker: w
       ? {

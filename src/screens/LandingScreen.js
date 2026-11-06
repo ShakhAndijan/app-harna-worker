@@ -13,7 +13,6 @@ import BonusCard from './landing/components/BonusCard';
 import LevelsSection from './landing/components/LevelsSection';
 import ReferralCard from './landing/components/ReferralCard';
 import CompareSection from './landing/components/CompareSection';
-import OrderPreview from './landing/components/OrderPreview';
 import SectionHead from './landing/components/SectionHead';
 import HowItWorks from './landing/components/HowItWorks';
 import Benefits from './landing/components/Benefits';
@@ -39,13 +38,10 @@ export default function LandingScreen({ onLogin }) {
           <TrustRow />
           <BonusCard />
 
+          <ServiceCategories />
+
           <SectionHead title={t('ustaLanding.sec.compare')} />
           <CompareSection />
-
-          <SectionHead title={t('ustaLanding.sec.preview')} />
-          <OrderPreview onPress={onLogin} />
-
-          <ServiceCategories />
 
           <SectionHead title={t('ustaLanding.sectionHead.howItWorks')} />
           <HowItWorks />

@@ -121,6 +121,7 @@ export async function request(
 
   if (!res.ok || json?.success === false) {
     const serverText = json?.message || describeDetail(json?.detail);
+    devLog(`[request] ✗ ${method} ${url} → ${res.status}`, JSON.stringify(json));
     throw new ApiError({
       serverMessage: Boolean(serverText),
       status: res.status,

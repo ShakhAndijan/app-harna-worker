@@ -77,6 +77,12 @@ export default function WorkerHomeScreen() {
         .sort((x, y) => y.p - x.p)
         .slice(0, 6)
         .map((x) => x.o);
+  // "Bilib qo'ying" faqat hali birorta buyurtma olmagan usta uchun: ma'lumot yuklangach aniqlanadi.
+  const firstTime =
+    !!worker &&
+    assigned.isSuccess &&
+    (assigned.data ?? []).length === 0 &&
+    !Number(worker.completed_jobs_count);
   const nextJob = (assigned.data ?? []).find((o) => ['accepted', 'active'].includes(o.status));
   const location = worker?.district || worker?.region || '';
   const holder = [worker?.first_name, worker?.last_name].filter(Boolean).join(' ').toUpperCase();
@@ -305,19 +311,6 @@ export default function WorkerHomeScreen() {
           {!!worker && <PricesCard categories={worker.categories} t={t} tr={tr} router={router} />}
           {!!worker && !locked && <ScheduleCard worker={worker} t={t} tr={tr} router={router} />}
 
-          {/* ── Barcha buyurtmalarga havola ── */}
-          <TouchableOpacity
-            activeOpacity={0.85}
-            onPress={() => router.navigate('/tasks')}
-            style={[s.allOrders, { backgroundColor: t.card, borderColor: t.border }]}
-          >
-            <Ionicons name="briefcase" size={22} color={t.orange} />
-            <Text style={{ flex: 1, color: t.text, fontSize: 14.5, fontWeight: '800' }}>
-              {tr('workerHome.allOrders')}
-            </Text>
-            <Ionicons name="chevron-forward" size={20} color={t.orange} />
-          </TouchableOpacity>
-
           {/* ── Haftalik natijalar ── */}
           {!!stats.data && <ResultsCard stats={stats.data} t={t} tr={tr} />}
 
@@ -325,22 +318,24 @@ export default function WorkerHomeScreen() {
           {!!contest.data?.enabled && <ContestCard c={contest.data} t={t} tr={tr} />}
 
           {/* ── Bilib qo'ying (sayt faktlari) ── */}
-          <SectionTitle title={tr('workerHome.factsTitle')} t={t} />
-          {FACTS.map(([icon, color, n]) => (
-            <View key={n} style={[s.fact, { backgroundColor: t.card, borderColor: t.border }]}>
-              <View style={[s.promoIcon, { backgroundColor: color + '24' }]}>
-                <Ionicons name={icon} size={22} color={color} />
+          {/* Faqat birinchi marta (hali buyurtma olinmagan) ko'rinadi; buyurtma kelgach yashiriladi. */}
+          {firstTime && <SectionTitle title={tr('workerHome.factsTitle')} t={t} />}
+          {firstTime &&
+            FACTS.map(([icon, color, n]) => (
+              <View key={n} style={[s.fact, { backgroundColor: t.card, borderColor: t.border }]}>
+                <View style={[s.promoIcon, { backgroundColor: color + '24' }]}>
+                  <Ionicons name={icon} size={22} color={color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>
+                    {tr(`workerHome.f${n}t`)}
+                  </Text>
+                  <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 3, lineHeight: 18 }}>
+                    {tr(`workerHome.f${n}`)}
+                  </Text>
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>
-                  {tr(`workerHome.f${n}t`)}
-                </Text>
-                <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 3, lineHeight: 18 }}>
-                  {tr(`workerHome.f${n}`)}
-                </Text>
-              </View>
-            </View>
-          ))}
+            ))}
 
           {/* ── Do'stni taklif qilish ── */}
           {!!referral.data && <ReferralCard r={referral.data} t={t} tr={tr} />}
@@ -865,15 +860,6 @@ function SectionTitle({ title, action, onAction, t }) {
 }
 
 const s = StyleSheet.create({
-  allOrders: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    marginTop: 14,
-  },
   ref: {
     marginTop: 28,
     padding: 18,

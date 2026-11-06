@@ -344,7 +344,6 @@ export const en = {
     },
   },
   workerHome: {
-    allOrders: 'All orders and my jobs',
     refReward: 'For every friend',
     refStep1: 'Send your code',
     refStep2: 'Friend signs up',

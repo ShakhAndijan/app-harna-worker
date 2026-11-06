@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 
 export default function PasswordInput({
@@ -9,6 +9,8 @@ export default function PasswordInput({
   placeholder = 'Parolni kiriting',
 }) {
   const [show, setShow] = useState(false);
+  // Raqamli klaviatura: iPhone'da harf klaviaturasida raqamga o'tish noqulay, shuning uchun alohida tugma.
+  const [numeric, setNumeric] = useState(false);
   const isDark = !theme || theme.isDark !== false;
   const faint = isDark ? '#6c7f9a' : '#8a97ab';
 
@@ -29,9 +31,23 @@ export default function PasswordInput({
         placeholderTextColor={faint}
         secureTextEntry={!show}
         autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={
+          numeric ? (Platform.OS === 'ios' ? 'numbers-and-punctuation' : 'numeric') : 'default'
+        }
         value={value}
         onChangeText={onChangeText}
       />
+      <TouchableOpacity
+        onPress={() => setNumeric((v) => !v)}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={numeric ? 'ABC' : '123'}
+      >
+        <Text style={{ color: numeric ? '#f07a30' : faint, fontWeight: '800', fontSize: 14 }}>
+          {numeric ? 'ABC' : '123'}
+        </Text>
+      </TouchableOpacity>
       <TouchableOpacity
         onPress={() => setShow((s) => !s)}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}

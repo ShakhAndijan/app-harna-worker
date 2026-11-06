@@ -1,6 +1,8 @@
 import { memo, useState } from 'react';
 import { View, Text, Image, FlatList, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { VideoView } from 'expo-video';
+import { useAutoplayVideo } from '../../../utils/autoplayVideo';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../../context/ThemeContext';
@@ -11,6 +13,22 @@ import ReelActionButton from './ReelActionButton';
 const ORANGE = '#e87a45';
 const GOLD = '#f5c451';
 const RING = '#e87a45';
+
+// Orqa fondagi video: ovozsiz, takrorlanadi; faqat ko'rinib turgan sahifada (`active`) ijro etiladi.
+function ReelVideo({ uri, active, muted, width, height }) {
+  const player = useAutoplayVideo(uri, active, muted);
+  return (
+    <View pointerEvents="none" style={{ width, height }}>
+      <VideoView
+        player={player}
+        nativeControls={false}
+        contentFit="cover"
+        allowsPictureInPicture={false}
+        style={{ width, height }}
+      />
+    </View>
+  );
+}
 
 // Bitta e'lon — to'liq ekran: orqa fonda rasmlar (gorizontal suriladi), tepada orqaga/belgi,
 // o'ngda amallar, pastda usta, sarlavha, tavsif, narx va "Bog'lanish".
@@ -30,18 +48,32 @@ function ReelPage({
   onDetails,
   onContact,
   onOpenWorker,
+  onEdit,
+  active = true,
 }) {
   const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [sound, setSound] = useState(false); // video ovozi: sukut bo'yicha o'chiq
+  const [paused, setPaused] = useState(false); // video ustiga bosilganda to'xtatiladi/davom ettiriladi
   const worker = listing.worker;
   const photos = listing.photos;
+  // `onEdit` berilsa — bu o'z e'loni (usta ko'rinishi): saqlash, batafsil va usta qatori yo'q, "Bog'lanish" o'rniga "Tahrirlash".
+  const own = !!onEdit;
   const location = [worker?.location, timeAgo(listing.createdAt, tr)].filter(Boolean).join(' · ');
 
   return (
     <View style={{ width, height, backgroundColor: '#0b1117' }}>
-      {photos.length > 0 ? (
+      {listing.videoUrl ? (
+        <ReelVideo
+          uri={listing.videoUrl}
+          active={active && !paused}
+          muted={!sound}
+          width={width}
+          height={height}
+        />
+      ) : photos.length > 0 ? (
         <FlatList
           data={photos}
           keyExtractor={(uri, i) => `${i}-${uri}`}
@@ -75,6 +107,21 @@ function ReelPage({
         </View>
       )}
 
+      {!!listing.videoUrl && (
+        <Pressable
+          onPress={() => setPaused((v) => !v)}
+          style={StyleSheet.absoluteFill}
+          accessibilityRole="button"
+          accessibilityLabel={tr(paused ? 'w.reel.play' : 'w.reel.pause')}
+        />
+      )}
+      {!!listing.videoUrl && paused && (
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.pausedWrap]}>
+          <View style={s.pausedCircle}>
+            <MaterialCommunityIcons name="play" size={44} color="#fff" />
+          </View>
+        </View>
+      )}
       <LinearGradient
         pointerEvents="none"
         colors={['rgba(0,0,0,0.55)', 'transparent']}
@@ -98,6 +145,12 @@ function ReelPage({
             <MaterialCommunityIcons name="chevron-left" size={26} color="#fff" />
           </TouchableOpacity>
         )}
+        {own && listing.isActive === false && (
+          <View style={[s.topBadge, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
+            <Ionicons name="eye-off" size={13} color="#fff" />
+            <Text style={[s.topBadgeTxt, { color: '#fff' }]}>{tr('w.listings.hidden')}</Text>
+          </View>
+        )}
         {listing.isTop && (
           <View style={s.topBadge}>
             <Ionicons name="flame" size={13} color={ORANGE} />
@@ -111,6 +164,32 @@ function ReelPage({
               {photoIndex + 1}/{photos.length}
             </Text>
           </View>
+        )}
+        {own && !!listing.videoUrl && (
+          <TouchableOpacity
+            onPress={() => setSound((v) => !v)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={tr(sound ? 'w.reel.soundOff' : 'w.reel.soundOn')}
+            style={s.backBtn}
+          >
+            <MaterialCommunityIcons
+              name={sound ? 'volume-high' : 'volume-off'}
+              size={22}
+              color="#fff"
+            />
+          </TouchableOpacity>
+        )}
+        {own && (
+          <TouchableOpacity
+            onPress={() => onEdit(listing)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={tr('w.listings.edit')}
+            style={s.backBtn}
+          >
+            <Ionicons name="create-outline" size={22} color="#fff" />
+          </TouchableOpacity>
         )}
         {!!onFilter && (
           <TouchableOpacity
@@ -138,6 +217,9 @@ function ReelPage({
       </View>
 
       <View style={[s.rail, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
+        {own && listing.viewCount != null && (
+          <ReelActionButton icon="eye-outline" label={String(listing.viewCount)} />
+        )}
         <ReelActionButton
           icon={listing.isLiked ? 'heart' : 'heart-outline'}
           active={listing.isLiked}
@@ -157,22 +239,26 @@ function ReelPage({
           label={tr('listings.reels.share')}
           onPress={() => onShare(listing)}
         />
-        <ReelActionButton
-          icon={listing.isFavorite ? 'bookmark' : 'bookmark-outline'}
-          active={listing.isFavorite}
-          activeColor={GOLD}
-          label={tr(listing.isFavorite ? 'listings.reels.saved' : 'listings.reels.save')}
-          onPress={() => onSave(listing)}
-        />
-        <ReelActionButton
-          icon="open-in-new"
-          label={tr('listings.reels.details')}
-          onPress={() => onDetails(listing)}
-        />
+        {!own && (
+          <ReelActionButton
+            icon={listing.isFavorite ? 'bookmark' : 'bookmark-outline'}
+            active={listing.isFavorite}
+            activeColor={GOLD}
+            label={tr(listing.isFavorite ? 'listings.reels.saved' : 'listings.reels.save')}
+            onPress={() => onSave(listing)}
+          />
+        )}
+        {!own && (
+          <ReelActionButton
+            icon="open-in-new"
+            label={tr('listings.reels.details')}
+            onPress={() => onDetails(listing)}
+          />
+        )}
       </View>
 
       <View style={[s.info, { paddingBottom: insets.bottom + 16 }]} pointerEvents="box-none">
-        {!!worker && (
+        {!!worker && !own && (
           <TouchableOpacity
             onPress={() => onOpenWorker(worker)}
             activeOpacity={0.85}
@@ -237,14 +323,16 @@ function ReelPage({
           >
             {priceText(listing, tr)}
           </Text>
-          <TouchableOpacity
-            onPress={() => onContact(listing)}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-            style={[s.contactBtn, { backgroundColor: t.orange }]}
-          >
-            <Text style={s.contactTxt}>{tr('listings.reels.contact')}</Text>
-          </TouchableOpacity>
+          {!own && (
+            <TouchableOpacity
+              onPress={() => onContact(listing)}
+              activeOpacity={0.88}
+              accessibilityRole="button"
+              style={[s.contactBtn, { backgroundColor: t.orange }]}
+            >
+              <Text style={s.contactTxt}>{tr('listings.reels.contact')}</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
@@ -255,6 +343,16 @@ export default memo(ReelPage);
 
 const s = StyleSheet.create({
   noPhoto: { alignItems: 'center', justifyContent: 'center' },
+  pausedWrap: { alignItems: 'center', justifyContent: 'center' },
+  pausedCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingLeft: 4,
+  },
   topShade: { position: 'absolute', top: 0, left: 0, right: 0 },
   bottomShade: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   topRow: {
@@ -334,5 +432,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 0,
   },
+  editBtn: { flexDirection: 'row', gap: 8 },
   contactTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

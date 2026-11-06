@@ -199,7 +199,7 @@ function Hero({ items, onAdd, t }) {
   );
 }
 
-function MyListingCard({ l, onOpen, onToggle, onDelete, t }) {
+export function MyListingCard({ l, onOpen, onToggle, onDelete, t }) {
   const { theme } = useTheme();
   return (
     <View

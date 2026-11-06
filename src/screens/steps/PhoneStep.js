@@ -85,12 +85,12 @@ export default function PhoneStep({
                     : { backgroundColor: 'rgba(240,122,48,0.08)' },
               ]}
             />
-            {/* Logo + "USTA" yozuvi: HARNA dan keyin, yuqori o'ng burchakda */}
+            {/* Logo + "PRO" yozuvi: HARNA dan keyin, yuqori o'ng burchakda */}
             <View style={s.logoRow}>
-              <BrandLogo width={isUsta ? 262 : 310} />
+              <BrandLogo width={isUsta ? 262 : 310} pro={false} />
               {isUsta && (
                 <View style={[s.ustaPill, { backgroundColor: theme.orange }]}>
-                  <Text style={s.ustaPillTxt}>USTA</Text>
+                  <Text style={s.ustaPillTxt}>PRO</Text>
                 </View>
               )}
             </View>
