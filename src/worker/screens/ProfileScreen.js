@@ -4,12 +4,10 @@ import {
   Text,
   Image,
   StyleSheet,
-  Modal,
-  Pressable,
-  ScrollView,
   TouchableOpacity,
   PanResponder,
   Animated,
+  LayoutAnimation,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -30,9 +28,7 @@ import {
   Card,
   Muted,
   Txt,
-  Btn,
   Pill,
-  Chips,
   Loading,
   ErrorBox,
   Empty,
@@ -40,9 +36,8 @@ import {
   num,
   money,
 } from '../ui';
-import { supportRoute } from '../../navigation/params';
 
-function MenuItem({ icon, label, onPress, danger }) {
+export function MenuItem({ icon, label, onPress, danger }) {
   const { theme } = useTheme();
   return (
     <TouchableOpacity
@@ -63,23 +58,122 @@ function MenuItem({ icon, label, onPress, danger }) {
 }
 
 // Til, mavzu va "Chiqish": profil yuklanmagan (masalan 403) holatda ham doim ko'rinib turadi.
-function SessionCards() {
+const LANGS = [
+  ['uz', '🇺🇿', "O'zbekcha", 'Salom!'],
+  ['ru', '🇷🇺', 'Русский', 'Привет!'],
+  ['en', '🇬🇧', 'English', 'Hello!'],
+];
+
+export function SessionCards() {
+  const [langOpen, setLangOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { t, language, setLanguage } = useLanguage();
+  const cur = LANGS.find((x) => x[0] === language) || LANGS[0];
   const { signOut } = useAuth();
   return (
     <>
-      <Card>
-        <Muted>{t('w.profile.language')}</Muted>
-        <Chips
-          value={language}
-          onChange={setLanguage}
-          options={[
-            { value: 'uz', label: "O'zbekcha" },
-            { value: 'ru', label: 'Русский' },
-            { value: 'en', label: 'English' },
-          ]}
-        />
+      <Card style={{ gap: 12 }}>
+        <TouchableOpacity
+          onPress={() => {
+            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+            setLangOpen((o) => !o);
+          }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: langOpen }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}
+        >
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 26,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.orange + '1F',
+              borderWidth: 2,
+              borderColor: theme.orange,
+            }}
+          >
+            <Text style={{ fontSize: 28 }}>{cur[1]}</Text>
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ color: theme.muted, fontSize: 12, fontWeight: '700' }}>
+              {t('w.profile.language')}
+            </Text>
+            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '900' }}>{cur[2]}</Text>
+          </View>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.isDark ? '#ffffff14' : '#00000010',
+            }}
+          >
+            <Ionicons
+              name={langOpen ? 'chevron-up' : 'chevron-down'}
+              size={18}
+              color={theme.text}
+            />
+          </View>
+        </TouchableOpacity>
+        {langOpen ? (
+          <View style={{ gap: 10 }}>
+            {LANGS.map(([code, flag, label, hello]) => {
+              const on = language === code;
+              return (
+                <TouchableOpacity
+                  key={code}
+                  onPress={() => setLanguage(code)}
+                  activeOpacity={0.85}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: on }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 14,
+                    padding: 12,
+                    borderRadius: 20,
+                    borderWidth: on ? 2 : 1,
+                    borderColor: on ? theme.orange : theme.border,
+                    backgroundColor: on ? theme.orange + '14' : 'transparent',
+                  }}
+                >
+                  <Text style={{ fontSize: 34 }}>{flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: '800',
+                        color: on ? theme.orange : theme.text,
+                      }}
+                    >
+                      {label}
+                    </Text>
+                    <Text style={{ fontSize: 12.5, color: theme.muted }}>{hello}</Text>
+                  </View>
+                  <View
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: on ? theme.orange : 'transparent',
+                      borderWidth: on ? 0 : 1.5,
+                      borderColor: theme.border,
+                    }}
+                  >
+                    {on ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ) : null}
         <MenuItem
           icon={theme.isDark ? 'sunny-outline' : 'moon-outline'}
           label={t('w.profile.theme')}
@@ -107,45 +201,6 @@ function SessionCards() {
   );
 }
 
-// Pastdan chiqadigan oyna (+ va ☰ tugmalari uchun).
-function Sheet({ visible, onClose, title, children }) {
-  const { theme } = useTheme();
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} onPress={onClose} />
-      <View
-        style={{
-          maxHeight: '85%',
-          backgroundColor: theme.bg,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          paddingTop: 10,
-        }}
-      >
-        <View
-          style={{
-            alignSelf: 'center',
-            width: 40,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: theme.border,
-            marginBottom: 10,
-          }}
-        />
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
-          <Txt style={{ flex: 1, fontWeight: '800', fontSize: 18 }}>{title}</Txt>
-          <TouchableOpacity onPress={onClose} hitSlop={10} accessibilityRole="button">
-            <Ionicons name="close" size={24} color={theme.muted} />
-          </TouchableOpacity>
-        </View>
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 36 }}>
-          {children}
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-}
-
 function Stat({ value, label }) {
   return (
     <View style={{ flex: 1, alignItems: 'center', gap: 2 }}>
@@ -163,7 +218,7 @@ const TabPage = memo(function TabPage({ v, w, still }) {
   return (
     <View style={{ gap: 12 }}>
       {v === 'listings' ? <MyListingsTab still={still} /> : null}
-      {v === 'works' ? <CompletedWorks meId={w.id} /> : null}
+      {v === 'works' ? <CompletedWorks w={w} /> : null}
       {v === 'reviews' ? <ReviewsList w={w} /> : null}
       {v === 'info' ? <InfoTab w={w} /> : null}
     </View>
@@ -181,7 +236,7 @@ function SwipeTabs({ order, value, onChange, render }) {
 
   const pan = useMemo(() => {
     const finish = (toValue, then) =>
-      Animated.timing(tx, { toValue, duration: 200, useNativeDriver: true }).start(then);
+      Animated.timing(tx, { toValue, duration: 220, useNativeDriver: false }).start(then);
     // Surish 12 px dan keyin tutib olinadi: shu boshlang'ich siljish ayrib tashlanadi, aks holda oyna sakrab ketadi.
     const base = { v: 0 };
     return PanResponder.create({
@@ -498,17 +553,61 @@ function MyListingsTab({ still }) {
 }
 
 // "Ishlarim" tabi: mutaxassis bajarib bergan (yakunlangan) buyurtmalar.
-function CompletedWorks({ meId }) {
+function CompletedWorks({ w }) {
   const { t } = useLanguage();
+  const { theme } = useTheme();
+  const router = useRouter();
   const q = useQuery({
     queryKey: ['w', 'orders', 'completed'],
     queryFn: () => api.getOrders({ scope: 'assigned', status: 'completed', limit: 50 }),
   });
-  if (q.isPending) return <Loading />;
-  if (q.isError) return <ErrorBox error={q.error} onRetry={q.refetch} />;
-  const items = Array.isArray(q.data) ? q.data : q.data?.items || [];
-  if (!items.length) return <Empty icon="hammer-outline" text={t('w.profile.noWorks')} />;
-  return items.map((o) => <OrderCard key={o.id} order={o} meId={meId} />);
+  const orders = Array.isArray(q.data) ? q.data : q.data?.items || [];
+  // Portfolio (ish namunalari): rasmi bor yozuvlar
+  const samples = (w.portfolio || [])
+    .map((p) => ({
+      id: p.id,
+      uri: (() => {
+        const ph = (p.photos || [])[0];
+        return typeof ph === 'string' ? ph : ph?.url;
+      })(),
+    }))
+    .filter((x) => x.uri);
+
+  if (q.isPending && !samples.length) return <Loading />;
+  if (!orders.length && !samples.length) {
+    if (q.isError) return <ErrorBox error={q.error} onRetry={q.refetch} />;
+    return <Empty icon="hammer-outline" text={t('w.profile.noWorks')} />;
+  }
+  return (
+    <View style={{ gap: 12 }}>
+      {orders.map((o) => (
+        <OrderCard key={o.id} order={o} meId={w.id} />
+      ))}
+      {samples.length > 0 && (
+        <View style={{ gap: 8 }}>
+          {orders.length > 0 && (
+            <Txt style={{ fontWeight: '800', fontSize: 15 }}>{t('w.profile.portfolioTitle')}</Txt>
+          )}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+            {samples.map((x) => (
+              <TouchableOpacity
+                key={x.id}
+                activeOpacity={0.85}
+                onPress={() => router.push('/portfolio')}
+                style={{ width: '32.4%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' }}
+              >
+                <Image
+                  source={{ uri: x.uri }}
+                  style={{ flex: 1, backgroundColor: theme.card }}
+                  resizeMode="cover"
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
 }
 
 function ReviewsList({ w }) {
@@ -547,9 +646,183 @@ function ReviewsList({ w }) {
   );
 }
 
+// Yo'nalishlar va narxlar: asosiy toifa bo'yicha guruhlangan kartalar, bosilganda ichki yo'nalishlar va narxlari ochiladi.
+function CategoryPrices({ cats }) {
+  const { theme } = useTheme();
+  const { t } = useLanguage();
+  const [open, setOpen] = useState(() => new Set());
+  const tree = useQuery({ queryKey: ['w', 'categories'], queryFn: api.getCategories });
+  const rootOf = useMemo(() => {
+    const map = new Map();
+    for (const r of tree.data || []) {
+      const stack = [r];
+      while (stack.length) {
+        const n = stack.pop();
+        map.set(n.id, r);
+        for (const k of n.children || []) stack.push(k);
+      }
+    }
+    return map;
+  }, [tree.data]);
+  const groups = useMemo(() => {
+    const m = new Map();
+    for (const c of cats) {
+      const id = c.category?.id ?? c.id;
+      const r = rootOf.get(id);
+      const key = r ? r.id : 'x' + id;
+      if (!m.has(key)) {
+        m.set(key, {
+          key,
+          name: r?.name || c.category?.name,
+          icon: r?.icon || c.category?.icon,
+          color: r?.color,
+          items: [],
+        });
+      }
+      m.get(key).items.push(c);
+    }
+    const list = [...m.values()];
+    for (const g of list) g.primary = g.items.some((x) => x.is_primary);
+    return list.sort((x, y) => Number(y.primary) - Number(x.primary));
+  }, [cats, rootOf]);
+  const toggle = (key) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+  return (
+    <View style={{ gap: 10 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Txt style={{ fontWeight: '800', fontSize: 17, flex: 1 }}>{t('w.profile.categories')}</Txt>
+        <View
+          style={{
+            minWidth: 26,
+            height: 26,
+            borderRadius: 13,
+            paddingHorizontal: 8,
+            backgroundColor: theme.orange,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13 }}>{cats.length}</Text>
+        </View>
+      </View>
+      {groups.map((g) => {
+        const isOpen = open.has(g.key);
+        return (
+          <View
+            key={g.key}
+            style={{
+              borderRadius: 22,
+              borderWidth: g.primary ? 1.5 : 1,
+              borderColor: g.primary ? theme.orange : theme.border,
+              backgroundColor: theme.card,
+              overflow: 'hidden',
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => toggle(g.key)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isOpen }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 }}
+            >
+              <View
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: 17,
+                  backgroundColor: g.color || theme.card2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ fontSize: 28 }}>{g.icon || '🛠️'}</Text>
+              </View>
+              <View style={{ flex: 1, gap: 3 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Txt style={{ fontWeight: '800', fontSize: 16, flexShrink: 1 }} numberOfLines={1}>
+                    {g.name}
+                  </Txt>
+                  {g.primary ? <Ionicons name="star" size={15} color={theme.gold} /> : null}
+                </View>
+                <Muted numberOfLines={1}>
+                  {g.items
+                    .map((x) => x.category?.name)
+                    .filter(Boolean)
+                    .join(', ')}
+                </Muted>
+              </View>
+              <View
+                style={{
+                  minWidth: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  paddingHorizontal: 8,
+                  backgroundColor: `${theme.orange}26`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: theme.orange, fontWeight: '900', fontSize: 14 }}>
+                  {g.items.length}
+                </Text>
+              </View>
+              <Ionicons
+                name={isOpen ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color={theme.muted}
+              />
+            </TouchableOpacity>
+            {isOpen
+              ? g.items.map((c) => {
+                  const hasPrice = num(c.price) > 0 && !c.is_negotiable;
+                  return (
+                    <View
+                      key={c.category?.id ?? c.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 10,
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: theme.border,
+                      }}
+                    >
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Txt style={{ fontWeight: '700', fontSize: 14.5 }}>{c.category?.name}</Txt>
+                        {c.price_type?.name ? (
+                          <Muted style={{ fontSize: 12 }}>{c.price_type.name}</Muted>
+                        ) : null}
+                      </View>
+                      {hasPrice ? (
+                        <Text style={{ color: theme.orange, fontWeight: '900', fontSize: 15 }}>
+                          {num(c.price).toLocaleString('ru-RU')} {t('common.currencySom')}
+                        </Text>
+                      ) : (
+                        <Text style={{ color: theme.muted, fontWeight: '800', fontSize: 12.5 }}>
+                          {t('w.priceNegotiable')}
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })
+              : null}
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function InfoTab({ w }) {
   const { t } = useLanguage();
-  const router = useRouter();
   const cats = w.categories || [];
   const place = [nameOf(w.region), nameOf(w.district)].filter(Boolean).join(', ');
   const rows = [
@@ -572,20 +845,7 @@ function InfoTab({ w }) {
         <Txt style={{ fontWeight: '800' }}>{t('w.profile.about')}</Txt>
         {w.bio ? <Txt>{w.bio}</Txt> : <Muted>{t('w.profile.noBio')}</Muted>}
       </Card>
-      {cats.length ? (
-        <Card>
-          <Txt style={{ fontWeight: '800' }}>{t('w.profile.categories')}</Txt>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-            {cats.map((c) => (
-              <Pill
-                key={c.category?.id ?? c.id}
-                label={`${c.category?.name ?? ''}${num(c.price) > 0 ? ` · ${num(c.price).toLocaleString('ru-RU')}` : ''}`}
-                color="#f97316"
-              />
-            ))}
-          </View>
-        </Card>
-      ) : null}
+      {cats.length ? <CategoryPrices cats={cats} /> : null}
       {rows.length ? (
         <Card>
           {rows.map(([icon, label, value]) => (
@@ -593,12 +853,6 @@ function InfoTab({ w }) {
           ))}
         </Card>
       ) : null}
-      <Btn
-        kind="ghost"
-        icon="create-outline"
-        label={t('w.profile.edit')}
-        onPress={() => router.push('/profile-edit')}
-      />
     </>
   );
 }
@@ -620,7 +874,6 @@ export default function ProfileScreen() {
   const { t } = useLanguage();
   const qc = useQueryClient();
   const [tab, setTab] = useState('listings');
-  const [sheet, setSheet] = useState(null); // 'menu' | null
   const q = useQuery({ queryKey: ['w', 'me'], queryFn: api.getMe });
   const stats = useQuery({
     queryKey: ['w', 'stats', 30],
@@ -633,8 +886,6 @@ export default function ProfileScreen() {
     mutationFn: async () => {
       const res = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
         quality: 0.8,
       });
       if (res.canceled) return null;
@@ -667,7 +918,6 @@ export default function ProfileScreen() {
   const rating = w.overall_rating ? Number(w.overall_rating).toFixed(1) : '—';
   const place = [nameOf(w.region), nameOf(w.district)].filter(Boolean).join(', ');
   const go = (path) => {
-    setSheet(null);
     router.push(path);
   };
 
@@ -700,7 +950,7 @@ export default function ProfileScreen() {
         </Txt>
         <TouchableOpacity
           style={{ width: 40, alignItems: 'flex-end' }}
-          onPress={() => setSheet('menu')}
+          onPress={() => router.push('/profile-menu')}
           hitSlop={10}
           accessibilityRole="button"
           accessibilityLabel={t('w.profile.menu')}
@@ -808,113 +1058,6 @@ export default function ProfileScreen() {
         onChange={setTab}
         render={(v, still) => <TabPage v={v} w={w} still={still} />}
       />
-
-      <Sheet visible={sheet === 'menu'} onClose={() => setSheet(null)} title={t('w.profile.menu')}>
-        <Card style={{ paddingVertical: 6 }}>
-          <MenuItem
-            icon="create-outline"
-            label={t('w.profile.edit')}
-            onPress={() => go('/profile-edit')}
-          />
-          <MenuItem
-            icon="construct-outline"
-            label={t('w.profile.categories')}
-            onPress={() => go('/my-categories')}
-          />
-          <MenuItem
-            icon="calendar-outline"
-            label={t('w.profile.schedule')}
-            onPress={() => go('/schedule')}
-          />
-          <MenuItem
-            icon="stats-chart-outline"
-            label={t('w.more.stats')}
-            onPress={() => go('/stats')}
-          />
-          <MenuItem
-            icon="ribbon-outline"
-            label={t('w.site.status')}
-            onPress={() => go('/status')}
-          />
-          <MenuItem
-            icon="calendar-number-outline"
-            label={t('w.more.calendar')}
-            onPress={() => go('/calendar')}
-          />
-          <MenuItem
-            icon="location-outline"
-            label={t('w.more.location')}
-            onPress={() => go('/location')}
-          />
-          <MenuItem
-            icon="star-outline"
-            label={t('w.profile.reviews')}
-            onPress={() => go('/my-reviews')}
-          />
-          <MenuItem
-            icon="images-outline"
-            label={t('w.extra.portfolio')}
-            onPress={() => go('/portfolio')}
-          />
-          <MenuItem
-            icon="ribbon-outline"
-            label={t('w.extra.certificates')}
-            onPress={() => go('/certificates')}
-          />
-          <MenuItem icon="diamond-outline" label={t('w.extra.pro')} onPress={() => go('/pro')} />
-          <MenuItem
-            icon="trending-up-outline"
-            label={t('w.extra.top')}
-            onPress={() => go('/top')}
-          />
-          <MenuItem
-            icon="people-outline"
-            label={t('w.extra.brigade')}
-            onPress={() => go('/brigade')}
-          />
-          <MenuItem
-            icon="gift-outline"
-            label={t('w.extra.referral')}
-            onPress={() => go('/referral')}
-          />
-          <MenuItem
-            icon="bulb-outline"
-            label={t('w.more.suggestions')}
-            onPress={() => go(supportRoute('suggestion'))}
-          />
-          <MenuItem
-            icon="alert-circle-outline"
-            label={t('w.extra.complaints')}
-            onPress={() => go('/complaints')}
-          />
-          <MenuItem
-            icon="shield-checkmark-outline"
-            label={t('w.extra.account')}
-            onPress={() => go('/account')}
-          />
-          <MenuItem
-            icon="notifications-outline"
-            label={t('w.profile.notifications')}
-            onPress={() => go('/notifications')}
-          />
-          <MenuItem
-            icon="settings-outline"
-            label={t('w.more.settings')}
-            onPress={() => go('/settings')}
-          />
-          <MenuItem
-            icon="headset-outline"
-            label={t('w.profile.support')}
-            onPress={() => go('/support')}
-          />
-          <MenuItem
-            icon="help-circle-outline"
-            label={t('w.profile.help')}
-            onPress={() => go('/help')}
-          />
-        </Card>
-        <SessionCards />
-      </Sheet>
     </Screen>
   );
 }

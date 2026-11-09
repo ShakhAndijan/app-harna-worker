@@ -42,6 +42,9 @@ export function mapWorker(w) {
     mainCategory: w.main_category?.name ?? '',
     categoryId: w.main_category?.id ?? null,
     skills: Array.isArray(w.skills) ? w.skills : [],
+    // Ish hududi (radius rejimida) — ustalar xaritasida doira bo'lib chiqadi.
+    workAreaMode: w.work_area_mode ?? null,
+    workRadiusKm: w.work_radius_km ?? null,
   };
 }
 

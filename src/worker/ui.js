@@ -54,6 +54,7 @@ export function useDebounced(value, ms = 400) {
 export function Screen({
   title,
   back = true,
+  onBack,
   right,
   children,
   onRefresh,
@@ -95,7 +96,9 @@ export function Screen({
           {back ? (
             <TouchableOpacity
               style={[s.iconBtn, { backgroundColor: theme.card, borderColor: theme.border }]}
-              onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+              onPress={() =>
+                onBack ? onBack() : router.canGoBack() ? router.back() : router.replace('/')
+              }
               accessibilityRole="button"
             >
               <Ionicons name="arrow-back" size={20} color={theme.text} />

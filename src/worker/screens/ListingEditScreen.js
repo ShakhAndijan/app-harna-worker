@@ -1,5 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
+  LayoutAnimation,
+  useWindowDimensions,
+  Easing,
   View,
   Image,
   TouchableOpacity,
@@ -8,10 +12,9 @@ import {
   ScrollView,
   Text,
   TextInput,
-  StyleSheet,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../context/ThemeContext';
@@ -45,7 +48,7 @@ function CategoryPicker({ options, value, onChange, label, doneLabel, searchLabe
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [openGroups, setOpenGroups] = useState({}); // ochilgan toifalar (accordion)
+  const [drill, setDrill] = useState(null); // ichiga kirilgan toifa nomi
   const chosen = options.filter((o) => value.includes(o.value));
   const toggle = (v) => onChange(value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
 
@@ -68,7 +71,9 @@ function CategoryPicker({ options, value, onChange, label, doneLabel, searchLabe
   const close = () => {
     setOpen(false);
     setQuery('');
+    setDrill(null);
   };
+  const soft = theme.isDark ? '#ffffff0D' : '#0000000A';
 
   return (
     <View style={{ gap: 6 }}>
@@ -144,7 +149,30 @@ function CategoryPicker({ options, value, onChange, label, doneLabel, searchLabe
             }}
           />
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
-            <Txt style={{ flex: 1, fontWeight: '800', fontSize: 19 }}>{label}</Txt>
+            {drill && !query.trim() ? (
+              <TouchableOpacity
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setDrill(null);
+                }}
+                hitSlop={8}
+                accessibilityRole="button"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 11,
+                  marginRight: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: soft,
+                }}
+              >
+                <Ionicons name="arrow-back" size={20} color={theme.text} />
+              </TouchableOpacity>
+            ) : null}
+            <Txt style={{ flex: 1, fontWeight: '800', fontSize: 19 }} numberOfLines={1}>
+              {drill && !query.trim() ? drill : label}
+            </Txt>
             {value.length > 0 && (
               <View
                 style={{
@@ -194,128 +222,158 @@ function CategoryPicker({ options, value, onChange, label, doneLabel, searchLabe
           </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ padding: 16, paddingBottom: 12, gap: 16 }}
+            contentContainerStyle={{ padding: 16, paddingBottom: 12 }}
           >
-            {groups.map((g) => {
+            {(() => {
               const searching = !!query.trim();
-              const expanded = !g.key || searching || !!openGroups[g.key];
-              const picked = g.items.filter((o) => value.includes(o.value)).length;
-              return (
-                <View
-                  key={g.key}
-                  style={
-                    g.key
-                      ? {
-                          borderRadius: 16,
-                          borderWidth: 1,
-                          borderColor: picked ? theme.orange : theme.border,
-                          backgroundColor: theme.card,
-                          overflow: 'hidden',
-                        }
-                      : { gap: 8 }
-                  }
-                >
-                  {!!g.key && (
-                    <TouchableOpacity
-                      onPress={() => setOpenGroups((p) => ({ ...p, [g.key]: !p[g.key] }))}
-                      activeOpacity={0.8}
+              const row = (o, last, sub) => {
+                const on = value.includes(o.value);
+                return (
+                  <TouchableOpacity
+                    key={String(o.value)}
+                    onPress={() => toggle(o.value)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 11,
+                      borderBottomWidth: last ? 0 : 1,
+                      borderBottomColor: theme.border,
+                      backgroundColor: on ? theme.orange + '14' : 'transparent',
+                    }}
+                  >
+                    <View
                       style={{
-                        flexDirection: 'row',
+                        width: 36,
+                        height: 36,
+                        borderRadius: 11,
                         alignItems: 'center',
-                        gap: 12,
-                        paddingHorizontal: 14,
-                        paddingVertical: 13,
+                        justifyContent: 'center',
+                        backgroundColor: theme.orange + '1F',
                       }}
                     >
-                      <Text style={{ fontSize: 22 }}>{g.icon || '📁'}</Text>
-                      <Text
-                        style={{ flex: 1, color: theme.text, fontWeight: '800', fontSize: 15.5 }}
-                        numberOfLines={1}
-                      >
-                        {g.key}
-                      </Text>
-                      {picked > 0 && (
-                        <View
-                          style={{
-                            minWidth: 22,
-                            height: 22,
-                            borderRadius: 11,
-                            paddingHorizontal: 6,
-                            backgroundColor: theme.orange,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 12 }}>
-                            {picked}
-                          </Text>
-                        </View>
-                      )}
-                      <Ionicons
-                        name={expanded ? 'chevron-up' : 'chevron-down'}
-                        size={20}
-                        color={theme.muted}
-                      />
-                    </TouchableOpacity>
-                  )}
-                  {expanded && (
-                    <View
-                      style={
-                        g.key
-                          ? {
-                              paddingHorizontal: 8,
-                              paddingBottom: 8,
-                              gap: 4,
-                              borderTopWidth: StyleSheet.hairlineWidth,
-                              borderTopColor: theme.border,
-                              paddingTop: 8,
-                            }
-                          : { gap: 8 }
-                      }
-                    >
-                      {g.items.map((o) => {
-                        const on = value.includes(o.value);
-                        return (
-                          <TouchableOpacity
-                            key={String(o.value)}
-                            onPress={() => toggle(o.value)}
-                            activeOpacity={0.8}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: 10,
-                              paddingHorizontal: 8,
-                              paddingVertical: 9,
-                              borderRadius: 12,
-                              backgroundColor: on ? `${theme.orange}14` : 'transparent',
-                            }}
-                          >
-                            <Text style={{ fontSize: 18 }}>{o.icon || '•'}</Text>
-                            <View style={{ flex: 1 }}>
-                              <Text
-                                style={{
-                                  color: on ? theme.orange : theme.text,
-                                  fontWeight: on ? '800' : '600',
-                                  fontSize: 14.5,
-                                }}
-                              >
-                                {o.label}
-                              </Text>
-                              {!!o.path && <Muted>{o.path}</Muted>}
-                            </View>
-                            <Ionicons
-                              name={on ? 'checkmark-circle' : 'ellipse-outline'}
-                              size={22}
-                              color={on ? theme.orange : theme.faint}
-                            />
-                          </TouchableOpacity>
-                        );
-                      })}
+                      <Text style={{ fontSize: 18 }}>{o.icon || '•'}</Text>
                     </View>
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          color: on ? theme.orange : theme.text,
+                          fontWeight: on ? '800' : '700',
+                          fontSize: 15,
+                        }}
+                      >
+                        {o.label}
+                      </Text>
+                      {sub ? <Muted>{sub}</Muted> : null}
+                    </View>
+                    <Ionicons
+                      name={on ? 'checkmark-circle' : 'ellipse-outline'}
+                      size={22}
+                      color={on ? theme.orange : theme.faint}
+                    />
+                  </TouchableOpacity>
+                );
+              };
+              const list = (items, showGroup) => (
+                <View style={{ borderRadius: 18, backgroundColor: soft, overflow: 'hidden' }}>
+                  {items.map((o, i) =>
+                    row(o, i === items.length - 1, showGroup ? o.group || o.path : o.path)
                   )}
                 </View>
               );
-            })}
+              if (searching)
+                return list(
+                  groups.flatMap((g) => g.items),
+                  true
+                );
+              const open = drill != null ? groups.find((g) => g.key === drill) : null;
+              if (open) return list(open.items, false);
+              const loose = groups.filter((g) => !g.key).flatMap((g) => g.items);
+              const grouped = groups.filter((g) => g.key);
+              return (
+                <View style={{ gap: 12 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                    {grouped.map((g) => {
+                      const picked = g.items.filter((o) => value.includes(o.value)).length;
+                      return (
+                        <TouchableOpacity
+                          key={g.key}
+                          onPress={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            setDrill(g.key);
+                          }}
+                          activeOpacity={0.8}
+                          accessibilityRole="button"
+                          style={{
+                            width: '48%',
+                            flexGrow: 1,
+                            gap: 10,
+                            padding: 14,
+                            borderRadius: 20,
+                            backgroundColor: soft,
+                            borderWidth: picked ? 1.5 : 0,
+                            borderColor: theme.orange,
+                          }}
+                        >
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 46,
+                                height: 46,
+                                borderRadius: 15,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: theme.orange + '1F',
+                              }}
+                            >
+                              <Text style={{ fontSize: 23 }}>{g.icon || '📁'}</Text>
+                            </View>
+                            <View
+                              style={{
+                                minWidth: 24,
+                                height: 24,
+                                borderRadius: 12,
+                                paddingHorizontal: 6,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: picked ? theme.orange : theme.orange + '22',
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: picked ? '#fff' : theme.orange,
+                                  fontSize: 12,
+                                  fontWeight: '900',
+                                }}
+                              >
+                                {picked || g.items.length}
+                              </Text>
+                            </View>
+                          </View>
+                          <Text
+                            style={{ color: theme.text, fontSize: 15, fontWeight: '800' }}
+                            numberOfLines={2}
+                          >
+                            {g.key}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {loose.length ? list(loose, false) : null}
+                </View>
+              );
+            })()}
           </ScrollView>
           <View style={{ padding: 16, paddingBottom: 28 }}>
             <Btn label={doneLabel} onPress={close} />
@@ -330,6 +388,50 @@ const DEFAULT_MAX_PHOTOS = 6;
 
 // E'lon yaratish / tahrirlash. Rasmlar: mavjudlari (URL) saqlanadi, yangilari presigned havola orqali yuklanadi.
 export default function ListingEditScreen() {
+  const { width } = useWindowDimensions();
+  const [anim] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 650,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
+      useNativeDriver: true,
+    }).start();
+  }, [anim]);
+  // Yopilganda ham o'ng tarafga mayin chiqib ketadi (kirish bilan simmetrik).
+  const navigation = useNavigation();
+  const closing = useRef(false);
+  useEffect(
+    () =>
+      navigation.addListener('beforeRemove', (e) => {
+        if (closing.current) return;
+        e.preventDefault();
+        closing.current = true;
+        Animated.timing(anim, {
+          toValue: 0,
+          duration: 450,
+          easing: Easing.bezier(0.5, 0, 0.75, 0),
+          useNativeDriver: true,
+        }).start(() => navigation.dispatch(e.data.action));
+      }),
+    [navigation, anim]
+  );
+  return (
+    <Animated.View
+      style={{
+        flex: 1,
+        opacity: anim.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0.4, 1, 1] }),
+        transform: [
+          { translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [-width, 0] }) },
+        ],
+      }}
+    >
+      <ListingEditBody />
+    </Animated.View>
+  );
+}
+
+function ListingEditBody() {
   const { id } = useLocalSearchParams();
   const { t } = useLanguage();
   const editing = !!id;

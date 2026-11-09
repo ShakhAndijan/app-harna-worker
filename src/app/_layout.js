@@ -133,12 +133,14 @@ function RootNavigator() {
                 <Stack.Screen name="calendar" />
                 <Stack.Screen name="location" />
                 <Stack.Screen name="settings" />
-                <Stack.Screen name="listing-edit" />
+                <Stack.Screen name="listing-edit" options={{ animation: 'none' }} />
                 <Stack.Screen name="my-reels" />
                 <Stack.Screen name="schedule" />
                 <Stack.Screen name="my-categories" />
                 <Stack.Screen name="my-reviews" />
                 <Stack.Screen name="profile-edit" />
+                <Stack.Screen name="profile-menu" options={{ animation: 'none' }} />
+                <Stack.Screen name="profile-hub" />
                 <Stack.Screen name="referral" />
                 <Stack.Screen name="pro" />
                 <Stack.Screen name="portfolio" />

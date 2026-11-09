@@ -97,7 +97,19 @@ export default function WorkersScreen({ onBack }) {
     () =>
       feed.items
         .filter((w) => w.latitude != null && w.longitude != null)
-        .map((w) => ({ id: w.id, lat: w.latitude, lon: w.longitude })),
+        .map((w) => ({
+          id: w.id,
+          lat: w.latitude,
+          lon: w.longitude,
+          title: w.name,
+          sub: [w.rating > 0 ? '★ ' + w.rating.toFixed(1) : null, w.mainCategory || w.profession]
+            .filter(Boolean)
+            .join(' · '),
+          radiusKm:
+            w.workAreaMode === 'radius' && Number(w.workRadiusKm) > 0
+              ? Number(w.workRadiusKm)
+              : null,
+        })),
     [feed.items]
   );
   const noLocationCount = feed.items.length - mapPins.length;
@@ -342,6 +354,7 @@ export default function WorkersScreen({ onBack }) {
           me={coords}
           selectedId={selected ? selected.id : null}
           onSelect={setSelectedId}
+          dark={t.isDark}
           fitKey={JSON.stringify(filters)}
         />
       )}
