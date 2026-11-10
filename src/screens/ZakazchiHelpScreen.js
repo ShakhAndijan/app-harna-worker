@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../context/ThemeContext';
@@ -14,15 +15,26 @@ import useBottomInset from '../hooks/useBottomInset';
 import usePullRefresh from '../hooks/usePullRefresh';
 
 const DOCS = ['about', 'terms', 'privacy', 'consent'];
+const DOC_ICONS = {
+  about: 'information-outline',
+  terms: 'file-document-outline',
+  privacy: 'shield-lock-outline',
+  consent: 'check-decagram-outline',
+};
 // Eski hujjatlar nomi `support.*` da, backenddan keladigan yangilari `legal.docs.*` da.
 const docLabelKey = (key) => (key === 'consent' ? 'legal.docs.consent' : `support.${key}`);
 
-function FaqItem({ item, isOpen, onToggle }) {
+function FaqItem({ item, index, isOpen, onToggle }) {
   const { theme: t } = useTheme();
 
   return (
-    <View>
+    <View style={isOpen ? { backgroundColor: t.orange + '0F' } : null}>
       <TouchableOpacity style={s.faqRow} activeOpacity={0.7} onPress={onToggle}>
+        <View style={[s.faqNum, { backgroundColor: isOpen ? t.orange : t.orange + '1F' }]}>
+          <Text style={{ color: isOpen ? '#fff' : t.orange, fontSize: 12, fontWeight: '900' }}>
+            {index + 1}
+          </Text>
+        </View>
         <Text style={[s.faqQ, { color: t.text, flex: 1 }]}>{item.q}</Text>
         <MaterialCommunityIcons
           name={isOpen ? 'chevron-up' : 'chevron-down'}
@@ -31,7 +43,7 @@ function FaqItem({ item, isOpen, onToggle }) {
         />
       </TouchableOpacity>
       {isOpen && (
-        <View style={[s.faqBody, { borderTopWidth: 1, borderTopColor: t.border }]}>
+        <View style={s.faqBody}>
           <Text style={[s.faqA, { color: t.muted }]}>{item.a}</Text>
         </View>
       )}
@@ -52,11 +64,23 @@ function FaqAccordion({ items }) {
           {i > 0 && <View style={{ height: 1, backgroundColor: t.border }} />}
           <FaqItem
             item={item}
+            index={i}
             isOpen={openIdx === i}
             onToggle={() => setOpenIdx(openIdx === i ? -1 : i)}
           />
         </View>
       ))}
+    </View>
+  );
+}
+
+// Bo'lim sarlavhasi: chap tomonda rangli chiziqcha.
+function SectionTitle({ children }) {
+  const { theme: t } = useTheme();
+  return (
+    <View style={s.secRow}>
+      <View style={[s.secBar, { backgroundColor: t.orange }]} />
+      <Text style={{ fontWeight: '900', fontSize: 15.5, color: t.text }}>{children}</Text>
     </View>
   );
 }
@@ -70,12 +94,12 @@ export default function ZakazchiHelpScreen({ onBack }) {
   const faq = useFaq();
   const faqItems = faq.data ?? FAQ_ITEMS[language] ?? FAQ_ITEMS.uz;
 
-  const contacts = [
+  // Tezkor aloqa: yumaloq ikonli tugmalar.
+  const quick = [
     {
       key: 'chat',
       icon: 'message-text',
       bg: '#e87a45',
-      sub: tr('help.chatSub'),
       onPress: () => router.push('/support-chat'),
     },
     ...(SUPPORT_CONTACT.phone
@@ -84,7 +108,6 @@ export default function ZakazchiHelpScreen({ onBack }) {
             key: 'call',
             icon: 'phone',
             bg: '#2fa37a',
-            sub: SUPPORT_CONTACT.phone,
             onPress: () => Linking.openURL(`tel:${SUPPORT_CONTACT.phone}`),
           },
         ]
@@ -95,7 +118,6 @@ export default function ZakazchiHelpScreen({ onBack }) {
             key: 'telegram',
             icon: 'send',
             bg: '#2aabee',
-            sub: SUPPORT_CONTACT.telegram,
             onPress: () =>
               Linking.openURL(`https://t.me/${SUPPORT_CONTACT.telegram.replace(/^@/, '')}`),
           },
@@ -107,24 +129,20 @@ export default function ZakazchiHelpScreen({ onBack }) {
             key: 'email',
             icon: 'email-outline',
             bg: '#3f7fd4',
-            sub: SUPPORT_CONTACT.email,
             onPress: () => Linking.openURL(`mailto:${SUPPORT_CONTACT.email}`),
           },
         ]
       : []),
+  ];
+
+  // Katta karta: mutaxassis bilan bog'lanish (takliflar ham shu sahifada, tab orqali).
+  const wide = [
     {
       key: 'question',
-      icon: 'help-circle-outline',
-      bg: '#8a6fd8',
+      icon: 'headset',
+      grad: ['#9b82e6', '#7556cf'],
       sub: tr('support.contactHint'),
       onPress: () => router.push(supportRoute('question')),
-    },
-    {
-      key: 'suggestion',
-      icon: 'lightbulb-outline',
-      bg: '#d9a21b',
-      sub: tr('support.suggestionHint'),
-      onPress: () => router.push(supportRoute('suggestion')),
     },
   ];
 
@@ -135,142 +153,157 @@ export default function ZakazchiHelpScreen({ onBack }) {
       <ScrollView
         refreshControl={refreshControl}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 + bottomInset }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: 8,
+          paddingBottom: 40 + bottomInset,
+          gap: 14,
+        }}
       >
-        {/* ── Header ── */}
-        <View style={s.header}>
-          <TouchableOpacity
-            style={[s.backBtn, { backgroundColor: t.card, borderColor: t.border }]}
-            onPress={onBack}
-            activeOpacity={0.8}
-          >
-            <MaterialCommunityIcons name="chevron-left" size={22} color={t.text} />
-          </TouchableOpacity>
-          <Text style={{ fontWeight: '700', fontSize: 20, color: t.text }}>
-            {tr('profile.settings.helpCenter')}
-          </Text>
-        </View>
-
-        {/* ── Hero card ── */}
-        <View style={{ paddingHorizontal: 20 }}>
-          <View style={s.hero}>
-            <View style={s.heroBg}>
-              <MaterialCommunityIcons
-                name="message-text"
-                size={110}
-                color="rgba(255,255,255,0.16)"
-              />
-            </View>
-            <Text style={{ fontWeight: '700', fontSize: 19, color: '#fff' }}>
-              {tr('help.heroTitle')}
-            </Text>
-            <Text
-              style={{
-                fontSize: 12.5,
-                color: 'rgba(255,255,255,0.92)',
-                marginTop: 6,
-                maxWidth: 220,
-              }}
-            >
-              {tr('help.heroSubtitle')}
-            </Text>
-          </View>
-        </View>
-
-        {/* ── Bog'lanish kanallari ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 18, gap: 11 }}>
-          {contacts.map((item) => (
-            <TouchableOpacity
-              key={item.key}
-              style={[s.contactRow, { backgroundColor: t.card, borderColor: t.border }]}
-              activeOpacity={0.8}
-              onPress={item.onPress}
-            >
-              <View style={[s.contactIcon, { backgroundColor: item.bg }]}>
-                <MaterialCommunityIcons name={item.icon} size={22} color="#fff" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 13 }}>
-                <Text style={{ fontWeight: '700', fontSize: 14, color: t.text }}>
-                  {item.key === 'telegram' ? 'Telegram' : tr(`help.contacts.${item.key}`)}
-                </Text>
-                <Text style={{ fontSize: 11.5, color: t.muted, marginTop: 2 }} numberOfLines={2}>
-                  {item.sub}
-                </Text>
-              </View>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={18}
-                color={t.faint}
-                style={{ marginLeft: 6 }}
-              />
+        {/* ── Hero: orqaga tugmasi, sarlavha va tezkor aloqa bir kartada ── */}
+        <LinearGradient
+          colors={['#f08a55', '#d9582a']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={s.hero}
+        >
+          <View style={s.heroDeco} />
+          <MaterialCommunityIcons
+            name="lifebuoy"
+            size={96}
+            color="rgba(255,255,255,0.14)"
+            style={s.heroBg}
+          />
+          <View style={s.heroRow}>
+            <TouchableOpacity style={s.backBtn} onPress={onBack} activeOpacity={0.8}>
+              <MaterialCommunityIcons name="chevron-left" size={22} color="#fff" />
             </TouchableOpacity>
-          ))}
-        </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={s.heroTitle} numberOfLines={1}>
+                {tr('profile.settings.helpCenter')}
+              </Text>
+              <Text style={s.heroSub} numberOfLines={2}>
+                {tr('help.heroSubtitle')}
+              </Text>
+            </View>
+          </View>
+          <View style={s.quickRow}>
+            {quick.map((q) => (
+              <TouchableOpacity
+                key={q.key}
+                style={s.quick}
+                activeOpacity={0.85}
+                onPress={q.onPress}
+                accessibilityRole="button"
+              >
+                <View style={[s.quickIcon, { backgroundColor: q.bg }]}>
+                  <MaterialCommunityIcons name={q.icon} size={20} color="#fff" />
+                </View>
+                <Text style={s.quickText} numberOfLines={1}>
+                  {q.key === 'telegram'
+                    ? 'Telegram'
+                    : q.key === 'chat'
+                      ? 'Chat'
+                      : tr(`help.contacts.${q.key}`)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </LinearGradient>
+
+        {/* ── Mutaxassis va takliflar: rangli kartalar ── */}
+        {wide.map((w) => (
+          <TouchableOpacity key={w.key} activeOpacity={0.88} onPress={w.onPress}>
+            <LinearGradient
+              colors={w.grad}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={s.wide}
+            >
+              <MaterialCommunityIcons
+                name={w.icon}
+                size={84}
+                color="rgba(255,255,255,0.18)"
+                style={s.wideBg}
+              />
+              <View style={s.wideIcon}>
+                <MaterialCommunityIcons name={w.icon} size={24} color="#fff" />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={s.wideTitle} numberOfLines={1}>
+                  {tr(`help.contacts.${w.key}`)}
+                </Text>
+                <Text style={s.wideSub} numberOfLines={2}>
+                  {w.sub}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="arrow-right-circle" size={26} color="#fff" />
+            </LinearGradient>
+          </TouchableOpacity>
+        ))}
 
         {/* ── Tez-tez so'raladi ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-          <Text style={{ fontWeight: '700', fontSize: 15, color: t.text, marginBottom: 12 }}>
-            {tr('help.faqTitle')}
-          </Text>
-          <FaqAccordion items={faqItems} />
+        <SectionTitle>{tr('help.faqTitle')}</SectionTitle>
+        <FaqAccordion items={faqItems} />
 
-          <View style={[s.notFound, { backgroundColor: t.card, borderColor: t.border }]}>
-            <Text style={{ fontWeight: '700', fontSize: 14, color: t.text }}>
+        <View style={[s.notFound, { backgroundColor: t.card, borderColor: t.border }]}>
+          <View style={[s.nfIcon, { backgroundColor: t.orange + '1F' }]}>
+            <MaterialCommunityIcons name="chat-question-outline" size={22} color={t.orange} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={{ fontWeight: '800', fontSize: 14, color: t.text }}>
               {tr('support.faqNotFoundTitle')}
             </Text>
-            <Text style={{ fontSize: 12.5, color: t.muted, marginTop: 2 }}>
-              {tr('support.faqNotFoundHint')}
-            </Text>
-            <TouchableOpacity
-              style={[s.notFoundBtn, { backgroundColor: t.orange }]}
-              activeOpacity={0.85}
-              onPress={() => router.push(supportRoute('question'))}
-            >
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
-                {tr('help.contacts.question')}
-              </Text>
-            </TouchableOpacity>
+            <Text style={{ fontSize: 12.5, color: t.muted }}>{tr('support.faqNotFoundHint')}</Text>
           </View>
+          <TouchableOpacity
+            style={[s.nfBtn, { backgroundColor: t.orange }]}
+            activeOpacity={0.85}
+            onPress={() => router.push(supportRoute('question'))}
+            accessibilityRole="button"
+            accessibilityLabel={tr('help.contacts.question')}
+          >
+            <MaterialCommunityIcons name="arrow-right" size={20} color="#fff" />
+          </TouchableOpacity>
         </View>
 
         {/* ── Foydali maqolalar (saytda ham yordam bo'limida) ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-          <TouchableOpacity
-            style={[s.faqCard, s.faqRow, { backgroundColor: t.card, borderColor: t.border }]}
-            activeOpacity={0.7}
-            onPress={() => router.push('/articles')}
-          >
+        <TouchableOpacity
+          style={[s.linkRow, { backgroundColor: t.card, borderColor: t.border }]}
+          activeOpacity={0.7}
+          onPress={() => router.push('/articles')}
+        >
+          <View style={[s.linkIcon, { backgroundColor: t.orange + '1F' }]}>
             <MaterialCommunityIcons name="newspaper-variant-outline" size={22} color={t.orange} />
-            <View style={{ flex: 1 }}>
-              <Text style={[s.faqQ, { color: t.text }]}>{tr('articles.menu')}</Text>
-              <Text style={{ fontSize: 12.5, color: t.muted, marginTop: 2 }}>
-                {tr('articles.menuHint')}
-              </Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={18} color={t.faint} />
-          </TouchableOpacity>
-        </View>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[s.faqQ, { color: t.text }]}>{tr('articles.menu')}</Text>
+            <Text style={{ fontSize: 12.5, color: t.muted, marginTop: 2 }}>
+              {tr('articles.menuHint')}
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={18} color={t.faint} />
+        </TouchableOpacity>
 
         {/* ── Hujjatlar ── */}
-        <View style={{ paddingHorizontal: 20, marginTop: 24 }}>
-          <Text style={{ fontWeight: '700', fontSize: 15, color: t.text, marginBottom: 12 }}>
-            {tr('support.legal')}
-          </Text>
-          <View style={[s.faqCard, { backgroundColor: t.card, borderColor: t.border }]}>
-            {DOCS.map((key, i) => (
-              <View key={key}>
-                {i > 0 && <View style={{ height: 1, backgroundColor: t.border }} />}
-                <TouchableOpacity
-                  style={s.faqRow}
-                  activeOpacity={0.7}
-                  onPress={() => router.push(documentRoute(key))}
-                >
-                  <Text style={[s.faqQ, { color: t.text, flex: 1 }]}>{tr(docLabelKey(key))}</Text>
-                  <MaterialCommunityIcons name="chevron-right" size={18} color={t.faint} />
-                </TouchableOpacity>
+        <SectionTitle>{tr('support.legal')}</SectionTitle>
+        <View style={s.docGrid}>
+          {DOCS.map((key) => (
+            <TouchableOpacity
+              key={key}
+              style={[s.doc, { backgroundColor: t.card, borderColor: t.border }]}
+              activeOpacity={0.8}
+              onPress={() => router.push(documentRoute(key))}
+            >
+              <View style={[s.docIcon, { backgroundColor: t.orange + '1F' }]}>
+                <MaterialCommunityIcons name={DOC_ICONS[key]} size={20} color={t.orange} />
               </View>
-            ))}
-          </View>
+              <Text style={{ flex: 1, fontWeight: '700', fontSize: 14, color: t.text }}>
+                {tr(docLabelKey(key))}
+              </Text>
+              <MaterialCommunityIcons name="chevron-right" size={18} color={t.faint} />
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -278,68 +311,141 @@ export default function ZakazchiHelpScreen({ onBack }) {
 }
 
 const s = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  hero: {
-    backgroundColor: '#e87a45',
-    borderRadius: 20,
-    padding: 20,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  heroBg: {
+  hero: { borderRadius: 24, padding: 14, gap: 14, overflow: 'hidden' },
+  heroDeco: {
     position: 'absolute',
-    right: -20,
-    bottom: -24,
+    right: -40,
+    top: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.13)',
   },
-
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 15,
-  },
-  contactIcon: {
-    width: 44,
-    height: 44,
+  heroBg: { position: 'absolute', right: 10, top: 6 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  backBtn: {
+    width: 36,
+    height: 36,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
+  heroTitle: { color: '#fff', fontSize: 19, fontWeight: '900' },
+  heroSub: { color: 'rgba(255,255,255,0.92)', fontSize: 12, lineHeight: 16, maxWidth: '75%' },
+  quickRow: { flexDirection: 'row', gap: 8 },
+  quick: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  quickIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickText: { color: '#fff', fontSize: 11.5, fontWeight: '800', paddingHorizontal: 2 },
 
-  faqCard: { borderWidth: 1, borderRadius: 16, overflow: 'hidden' },
+  wide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  wideBg: { position: 'absolute', right: 30, bottom: -14 },
+  wideIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.24)',
+  },
+  wideTitle: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  wideSub: { color: 'rgba(255,255,255,0.92)', fontSize: 12, lineHeight: 16 },
+
+  secRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  secBar: { width: 4, height: 18, borderRadius: 2 },
+
+  faqCard: { borderWidth: 1, borderRadius: 20, overflow: 'hidden' },
   faqRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 15,
-    paddingHorizontal: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
   },
-  faqQ: { fontWeight: '600', fontSize: 13.8 },
-  faqBody: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 },
-  faqA: { fontSize: 13, lineHeight: 20 },
-  notFound: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 14 },
-  notFoundBtn: {
-    height: 46,
+  faqNum: {
+    width: 26,
+    height: 26,
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 12,
+  },
+  faqQ: { fontWeight: '700', fontSize: 13.8 },
+  faqBody: { paddingLeft: 52, paddingRight: 16, paddingBottom: 14 },
+  faqA: { fontSize: 13, lineHeight: 20 },
+
+  notFound: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+  },
+  nfIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nfBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 12,
+  },
+  linkIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  docGrid: { gap: 8 },
+  doc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 11,
+  },
+  docIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

@@ -151,6 +151,10 @@ export const ENDPOINTS = {
     `${API_BASE_URL}/api/v1/orders/${orderId}/offers/${offerId}/reject`,
 
   // Usta xizmat e'lonlari. `browse` sahifalangan ({ items, pagination }) va barcha filtrlarni biladi.
+  CUSTOMER_LIKED_LISTINGS: (page = 1, size = 20) =>
+    `${API_BASE_URL}/api/v1/customers/me/liked-listings?page=${page}&size=${size}`,
+  LISTING_AUTHORS: (q, limit = 10) =>
+    `${API_BASE_URL}/api/v1/listings/authors?q=${encodeURIComponent(q)}&limit=${limit}`,
   LISTINGS_BROWSE: `${API_BASE_URL}/api/v1/listings/browse`,
   LISTING_DETAIL: (listingId) => `${API_BASE_URL}/api/v1/listings/${listingId}`,
   LISTING_COMMENTS: (listingId) => `${API_BASE_URL}/api/v1/listings/${listingId}/comments`,

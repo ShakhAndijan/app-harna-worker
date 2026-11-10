@@ -107,6 +107,7 @@ function RootNavigator() {
                 <Stack.Screen name="addresses" />
                 <Stack.Screen name="payment-history" />
                 <Stack.Screen name="notifications" />
+                <Stack.Screen name="notification-settings" />
                 <Stack.Screen name="help" />
                 <Stack.Screen name="edit-profile" />
                 <Stack.Screen name="change-password" />
@@ -128,7 +129,6 @@ function RootNavigator() {
                 <Stack.Screen name="company-plan" />
                 <Stack.Screen name="company-member" />
                 <Stack.Screen name="company-statement" />
-                <Stack.Screen name="stats" />
                 <Stack.Screen name="status" />
                 <Stack.Screen name="calendar" />
                 <Stack.Screen name="location" />

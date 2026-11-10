@@ -13,9 +13,7 @@ import { listingRoute, ustaRoute } from '../navigation/params';
 import ReelPage from './listings/components/ReelPage';
 import CommentsSheet from './listings/components/CommentsSheet';
 import ReelFilterSheet from './listings/components/ReelFilterSheet';
-import useListingFavorite from './listings/hooks/useListingFavorite';
 import useListingLike from './listings/hooks/useListingLike';
-import useOrderListing from './listings/hooks/useOrderListing';
 import { shareListing, workerToUsta } from './listings/utils';
 
 const BG = '#0b1117';
@@ -23,6 +21,14 @@ const SHEET_RATIO = 0.62;
 // Pastki suzuvchi menyu egallaydigan joy (menyu balandligi + chetdan masofa): tabda tugmalar uning ustida turadi.
 const TAB_BAR_SPACE = 86;
 const NO_FILTERS = {};
+const NO_TAB_FILTER = {
+  parentId: null,
+  subId: null,
+  sort: 'new',
+  price: { priceMin: null, priceMax: null, priced: null },
+  hasPhoto: false,
+  author: null,
+};
 
 // E'lonlarni Instagram Reels kabi to'liq ekranda ko'rish: yuqoriga/pastga surib keyingi e'longa o'tiladi.
 // Ro'yxat bosilgan e'lon ochilgan ro'yxat (`filters`/`saved`) bilan bir xil, shuning uchun keshdan darhol keladi.
@@ -43,22 +49,34 @@ export default function ListingReelsScreen({
   );
   const { t: tr } = useLanguage();
   const { tree } = useCategoryTreeQuery();
-  // Tabda yo'nalish chiplari filtrni belgilaydi; boshqa joylarda filtr tashqaridan keladi.
-  const [parentId, setParentId] = useState(null);
-  const [subId, setSubId] = useState(null);
+  // Tabdagi filtr: yo'nalish, saralash, narx, foto va mutaxassis; boshqa joylarda filtr tashqaridan keladi.
+  const [fv, setFv] = useState(NO_TAB_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
-  const categoryId = subId ?? parentId;
   const feedFilters = useMemo(
-    () => (tab ? { categoryId } : (filters ?? NO_FILTERS)),
-    [tab, categoryId, filters]
-  );
-  const feed = useListingsFeed(feedFilters, { saved });
-  const tools = useMemo(
     () =>
       tab
-        ? { onSearch, onFilter: () => setFilterOpen(true), filterActive: categoryId != null }
-        : null,
-    [tab, onSearch, categoryId]
+        ? {
+            categoryId: fv.subId ?? fv.parentId,
+            sort: fv.sort,
+            workerId: fv.author?.id ?? null,
+            hasPhoto: fv.hasPhoto,
+            ...fv.price,
+          }
+        : (filters ?? NO_FILTERS),
+    [tab, fv, filters]
+  );
+  const filterActive =
+    fv.parentId != null ||
+    fv.sort !== 'new' ||
+    fv.hasPhoto ||
+    !!fv.author ||
+    fv.price.priceMin != null ||
+    fv.price.priceMax != null ||
+    fv.price.priced != null;
+  const feed = useListingsFeed(feedFilters, { saved });
+  const tools = useMemo(
+    () => (tab ? { onSearch, onFilter: () => setFilterOpen(true), filterActive } : null),
+    [tab, onSearch, filterActive]
   );
   const ready = !feed.loading && !feed.error;
   // Ro'yxat kelguncha bitta e'lon kesh bilan yangilanib turishi uchun (layk/saqlash natijasi ko'rinsin).
@@ -147,20 +165,14 @@ export default function ListingReelsScreen({
       {tab && size && filterOpen && (
         <ReelFilterSheet
           tree={tree}
-          parentId={parentId}
-          subId={subId}
-          onPickParent={(id) => {
-            setParentId(id);
-            setSubId(null);
-          }}
-          onPickSub={setSubId}
-          onReset={() => {
-            setParentId(null);
-            setSubId(null);
+          value={fv}
+          onApply={(next) => {
+            setFv(next);
+            setFilterOpen(false);
           }}
           onClose={() => setFilterOpen(false)}
-          maxHeight={size.height * 0.7}
-          bottomInset={safeInsets.bottom}
+          maxHeight={size.height * 0.8}
+          bottomInset={insets.bottom}
         />
       )}
     </View>
@@ -172,20 +184,16 @@ function useReelActions() {
   const router = useRouter();
   const { t: tr } = useLanguage();
   const like = useListingLike();
-  const save = useListingFavorite();
-  const order = useOrderListing();
 
   return useMemo(
     () => ({
       onLike: like,
-      onSave: save,
-      onContact: order,
       onShare: (listing) => shareListing(listing, tr),
       // Batafsil sahifa reels ustida ochiladi, orqaga bosilsa shu e'longa qaytiladi.
       onDetails: (listing) => router.push(listingRoute(listing)),
       onOpenWorker: (worker) => router.push(ustaRoute(workerToUsta(worker))),
     }),
-    [like, save, order, router, tr]
+    [like, router, tr]
   );
 }
 
@@ -221,6 +229,8 @@ function SingleReel({ listing, size, insets, onBack, tools }) {
   );
 }
 
+const VIEWABILITY = { itemVisiblePercentThreshold: 60 };
+
 function ReelsPager({ size, insets, initial, feedItems, loadMore, onBack, tools }) {
   const router = useRouter();
   const { signedIn } = useAuth();
@@ -244,11 +254,19 @@ function ReelsPager({ size, insets, initial, feedItems, loadMore, onBack, tools 
     )
   );
 
+  // Faqat ko'rinib turgan sahifadagi video o'ynaydi.
+  const [activeId, setActiveId] = useState(items[startIndex]?.id ?? null);
+  const onViewableItemsChanged = useCallback(({ viewableItems }) => {
+    const first = viewableItems.find((v) => v.isViewable);
+    if (first) setActiveId(first.item.id);
+  }, []);
+
   const onComments = useCallback((l) => setCommentsFor(l.id), []);
   const renderItem = useCallback(
     ({ item }) => (
       <ReelPage
         listing={item}
+        active={item.id === activeId}
         width={size.width}
         height={size.height}
         insets={insets}
@@ -258,7 +276,7 @@ function ReelsPager({ size, insets, initial, feedItems, loadMore, onBack, tools 
         {...actions}
       />
     ),
-    [size, insets, onBack, tools, onComments, actions]
+    [size, insets, onBack, tools, onComments, actions, activeId]
   );
 
   return (
@@ -277,6 +295,8 @@ function ReelsPager({ size, insets, initial, feedItems, loadMore, onBack, tools 
         windowSize={3}
         maxToRenderPerBatch={1}
         removeClippedSubviews
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={VIEWABILITY}
         onEndReached={loadMore}
         onEndReachedThreshold={2}
         scrollEnabled={commentsFor == null}

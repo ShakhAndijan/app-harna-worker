@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import {
-  Share,
   Linking,
   View,
   Text,
@@ -42,6 +41,7 @@ export default function WorkerHomeScreen() {
   const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
   const router = useRouter();
+  const unread = useUnreadNotifications();
   const bottomSpace = useTabBarSpace(90);
   const { refreshControl } = usePullRefresh();
 
@@ -58,7 +58,6 @@ export default function WorkerHomeScreen() {
   const isOnline = worker?.availability === 'online';
   const offHours = isOnline && worker?.status?.accepting === false;
 
-  const unread = useUnreadNotifications();
   // Buyurtma olish uchun majburiy ma'lumotlar (mijoz ilovasi qoidasi; serverda alohida tekshiruv yo'q).
   const required = [
     ['m_photo', !!worker?.profile_photo],
@@ -338,7 +337,7 @@ export default function WorkerHomeScreen() {
             ))}
 
           {/* ── Do'stni taklif qilish ── */}
-          {!!referral.data && <ReferralCard r={referral.data} t={t} tr={tr} />}
+          {!!referral.data && <ReferralMini r={referral.data} tr={tr} router={router} />}
 
           {/* ── Yordam ── */}
           <TouchableOpacity
@@ -579,101 +578,39 @@ function BestCard({ order, locked, onPress, t, tr }) {
   );
 }
 
-function ReferralCard({ r, t, tr }) {
+// Ixcham taklif kartasi: bosilsa "Do'stni taklif qilish" sahifasi ochiladi.
+function ReferralMini({ r, tr, router }) {
   const you = money(r.inviter_bonus) ?? '—';
-  const friend = money(r.invitee_bonus) ?? '—';
-  const share = () =>
-    Share.share({ message: tr('workerHome.refMsg', { code: r.code }) }).catch(() => {});
-  const steps = [
-    ['paper-plane', tr('workerHome.refStep1'), null],
-    ['person-add', tr('workerHome.refStep2'), tr('workerHome.refGets', { n: friend })],
-    ['trophy', tr('workerHome.refStep3'), tr('workerHome.refYouGet', { n: you })],
-  ];
   return (
-    <LinearGradient
-      colors={['#25405f', '#12223a', '#0b1626']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={s.ref}
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => router.push('/referral')}
+      accessibilityRole="button"
+      style={{ marginTop: 28 }}
     >
-      <View style={s.refGlow} />
-
-      {/* Sarlavha va sovrin */}
-      <View style={s.refTop}>
-        <View style={s.refGift}>
-          <Ionicons name="gift" size={28} color="#fff" />
+      <LinearGradient
+        colors={['#25405f', '#12223a', '#0b1626']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={s.refMini}
+      >
+        <View style={s.refMiniGlow} />
+        <View style={s.refMiniGift}>
+          <Ionicons name="gift" size={24} color="#fff" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>
+          <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>
             {tr('workerHome.refTitle')}
           </Text>
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginTop: 2 }}>
-            {tr('workerHome.refReward')}
+          <Text style={{ color: 'rgba(255,255,255,0.78)', fontSize: 12.5, marginTop: 2 }}>
+            {tr('workerHome.refPromo', { n: you })}
           </Text>
         </View>
-        <Text style={s.refAmount}>
-          {you}
-          <Text style={{ fontSize: 12, fontWeight: '700' }}> {tr('workerHome.som')}</Text>
-        </Text>
-      </View>
-
-      {/* Qadamlar */}
-      <View style={s.refSteps}>
-        {steps.map(([icon, title, reward], i) => (
-          <View key={title} style={s.refStep}>
-            <View style={s.refStepIcon}>
-              <Ionicons name={icon} size={18} color="#fff" />
-              <View style={s.refStepNum}>
-                <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>{i + 1}</Text>
-              </View>
-            </View>
-            <Text style={s.refStepTxt} numberOfLines={2}>
-              {title}
-            </Text>
-            {!!reward && <Text style={s.refStepReward}>{reward}</Text>}
-          </View>
-        ))}
-      </View>
-
-      {/* Kod "chipta" */}
-      <View style={s.refTicket}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, letterSpacing: 1 }}>
-            {tr('workerHome.refCode').toUpperCase()}
-          </Text>
-          <Text style={s.refCodeTxt}>{r.code}</Text>
+        <View style={s.refMiniArrow}>
+          <Ionicons name="chevron-forward" size={18} color="#fff" />
         </View>
-        <TouchableOpacity activeOpacity={0.85} onPress={share} style={s.refBtn}>
-          <Ionicons name="share-social" size={16} color="#fff" />
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 13.5 }}>
-            {tr('workerHome.refShare')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Natijalar */}
-      <View style={s.refStats}>
-        <RefStat value={r.invited} label={tr('workerHome.refInvited')} />
-        <View style={s.refSep} />
-        <RefStat value={r.rewarded} label={tr('workerHome.refRewarded')} />
-        <View style={s.refSep} />
-        <RefStat value={money(r.earned) ?? 0} label={tr('workerHome.refEarned')} />
-      </View>
-    </LinearGradient>
-  );
-}
-
-function RefStat({ value, label }) {
-  return (
-    <View style={{ flex: 1, alignItems: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: 17, fontWeight: '800' }}>{value}</Text>
-      <Text
-        style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, marginTop: 2 }}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-    </View>
+      </LinearGradient>
+    </TouchableOpacity>
   );
 }
 
@@ -751,7 +688,7 @@ function PricesCard({ categories, t, tr, router }) {
       <SectionTitle
         title={tr('workerHome.prices')}
         action={tr('workerHome.seeAll')}
-        onAction={() => router.navigate('/profile')}
+        onAction={() => router.push('/my-categories')}
         t={t}
       />
       <View
@@ -860,101 +797,41 @@ function SectionTitle({ title, action, onAction, t }) {
 }
 
 const s = StyleSheet.create({
-  ref: {
-    marginTop: 28,
-    padding: 18,
-    borderRadius: 24,
+  refMini: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 14,
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
-  refGlow: {
+  refMiniGlow: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    top: -90,
-    right: -70,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    top: -60,
+    right: -30,
     backgroundColor: 'rgba(232,122,69,0.22)',
   },
-  refTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  refGift: {
-    width: 52,
-    height: 52,
+  refMiniGift: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#e87a45',
+  },
+  refMiniArrow: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e87a45',
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
-  refAmount: { color: '#f5b81f', fontSize: 22, fontWeight: '900' },
-  refSteps: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  refStep: {
-    flex: 1,
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  refStepIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.12)',
-  },
-  refStepNum: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#e87a45',
-  },
-  refStepTxt: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginTop: 8,
-    minHeight: 28,
-  },
-  refStepReward: {
-    color: '#f5b81f',
-    fontSize: 11,
-    fontWeight: '800',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  refTicket: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginTop: 16,
-    paddingVertical: 12,
-    paddingLeft: 16,
-    paddingRight: 12,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-  refCodeTxt: { color: '#fff', fontSize: 22, fontWeight: '900', letterSpacing: 3, marginTop: 2 },
-  refBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#e87a45',
-  },
-  refStats: { flexDirection: 'row', alignItems: 'center', marginTop: 18 },
-  refSep: { width: 1, height: 28, backgroundColor: 'rgba(255,255,255,0.12)' },
   support: {
     flexDirection: 'row',
     alignItems: 'center',

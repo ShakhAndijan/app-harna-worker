@@ -16,17 +16,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import { appAlert } from '../../components/AppAlert';
+import { appAlert, appConfirm } from '../../components/AppAlert';
 import LocationMapPicker, { reverseGeocodeAddress } from '../../components/LocationMapPicker';
 import TilBottomSheet, { LANGS } from '../../components/TilBottomSheet';
 import { getErrorMessage } from '../../utils/errors';
-import { supportRoute } from '../../navigation/params';
 import * as api from '../api';
-import { Screen, Card, H, Muted, Btn, Loading, ErrorBox, num } from '../ui';
+import { Screen, Muted, Btn, Loading, ErrorBox, num } from '../ui';
 
 const pad = (n) => String(n).padStart(2, '0');
-
-export { default as StatsScreen } from './StatsBlock';
 
 // ── Kalendar ─────────────────────────────────────────────────────────────────
 // days[]: { day, status: 'off' | 'full' | 'open', weekly_off, booked, ... }
@@ -840,28 +837,102 @@ function LocationForm({ w, regions }) {
   );
 }
 
-// ── Sozlamalar ───────────────────────────────────────────────────────────────
-function Row({ icon, label, value, onPress, danger, right }) {
+// ── Sozlamalar (akkaunt ham shu yerda) ───────────────────────────────────────
+// Rangli ikonli qator: chap tomonda yumshoq fonli ikonka, o'ngda qiymat / tugma / chevron.
+function Row({ icon, label, sub, value, onPress, danger, right, color, last }) {
   const { theme } = useTheme();
+  const tone = danger ? theme.red : color || theme.orange;
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
       disabled={!onPress}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12 }}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: theme.border,
+      }}
     >
-      <Ionicons name={icon} size={22} color={danger ? theme.red : theme.orange} />
-      <Text
-        style={{ flex: 1, color: danger ? theme.red : theme.text, fontSize: 15, fontWeight: '600' }}
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: tone + '22',
+        }}
       >
-        {label}
-      </Text>
-      {value ? <Muted>{value}</Muted> : null}
+        <Ionicons name={icon} size={19} color={tone} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ color: danger ? theme.red : theme.text, fontSize: 14.5, fontWeight: '700' }}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+        {sub ? (
+          <Text style={{ color: theme.muted, fontSize: 12, marginTop: 1 }} numberOfLines={2}>
+            {sub}
+          </Text>
+        ) : null}
+      </View>
+      {value ? (
+        <Text style={{ color: theme.muted, fontSize: 13, fontWeight: '600' }}>{value}</Text>
+      ) : null}
       {right ||
         (onPress && !danger ? (
-          <Ionicons name="chevron-forward" size={18} color={theme.faint} />
+          <Ionicons name="chevron-forward" size={17} color={theme.faint} />
         ) : null)}
     </TouchableOpacity>
+  );
+}
+
+// Sarlavha va ostida karta: qatorlar chiziq bilan ajratiladi.
+function Group({ title, children, danger }) {
+  const { theme } = useTheme();
+  return (
+    <View style={{ gap: 7 }}>
+      {title ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 4 }}>
+          <View
+            style={{
+              width: 4,
+              height: 14,
+              borderRadius: 2,
+              backgroundColor: danger ? theme.red : theme.orange,
+            }}
+          />
+          <Text
+            style={{
+              color: theme.muted,
+              fontSize: 12.5,
+              fontWeight: '900',
+              letterSpacing: 0.4,
+              textTransform: 'uppercase',
+            }}
+          >
+            {title}
+          </Text>
+        </View>
+      ) : null}
+      <View
+        style={{
+          borderRadius: 20,
+          overflow: 'hidden',
+          backgroundColor: theme.card,
+          borderWidth: 1,
+          borderColor: danger ? theme.red + '55' : theme.border,
+        }}
+      >
+        {children}
+      </View>
+    </View>
   );
 }
 
@@ -874,6 +945,7 @@ export function SettingsScreen() {
   const [showLang, setShowLang] = useState(false);
   const me = useQuery({ queryKey: ['w', 'me'], queryFn: api.getMe });
   const tg = useQuery({ queryKey: ['w', 'tg'], queryFn: api.getTelegramStatus, retry: false });
+  const preview = useQuery({ queryKey: ['w', 'delPreview'], queryFn: api.getDeletionPreview });
   const onError = (e) => appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'w.actionFailed'));
 
   // Til va tema serverda ham saqlanadi (sayt bilan bir xil bo'lishi uchun); xato ilovani to'xtatmaydi.
@@ -902,101 +974,166 @@ export function SettingsScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['w', 'tg'] }),
     onError,
   });
+  const del = useMutation({
+    mutationFn: api.deleteAccount,
+    onSuccess: () => signOut(),
+    onError,
+  });
   const linked = !!tg.data?.linked;
+  const blockers = preview.data?.blockers || [];
+  const sw = (value, onValueChange) => (
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{ true: theme.orange }}
+      style={{ transform: [{ scaleX: 0.9 }, { scaleY: 0.9 }] }}
+    />
+  );
 
   return (
     <Screen title={t('w.more.settings')} onRefresh={tg.refetch}>
-      <Card style={{ paddingVertical: 6 }}>
+      {/* Umumiy */}
+      <Group>
         <Row
-          icon="earth-outline"
+          icon="earth"
+          color="#3f7fd4"
           label={t('w.more.language')}
           value={LANGS.find((l) => l.code === language)?.name}
           onPress={() => setShowLang(true)}
         />
         <Row
-          icon="moon-outline"
+          icon="moon"
+          color="#7c5cff"
           label={t('w.more.theme')}
-          right={
-            <Switch
-              value={!!theme.isDark}
-              onValueChange={flipTheme}
-              trackColor={{ true: theme.orange }}
-            />
-          }
+          right={sw(!!theme.isDark, flipTheme)}
         />
         <Row
-          icon="notifications-outline"
+          icon="help-buoy"
+          color="#2fa37a"
+          label={t('w.more.help')}
+          onPress={() => router.push('/help')}
+          last
+        />
+      </Group>
+
+      {/* Bildirishnomalar */}
+      <Group title={t('w.site.alerts')}>
+        <Row
+          icon="notifications"
           label={t('w.more.notifications')}
           onPress={() => router.push('/notifications')}
         />
+        {me.data ? (
+          <>
+            <Row
+              icon="chatbubble-ellipses"
+              color="#2aabee"
+              label={t('w.site.alertsText')}
+              right={sw(!!me.data.notify_new_orders_telegram, (v) =>
+                patch.mutate({ notify_new_orders_telegram: v })
+              )}
+            />
+            <Row
+              icon="volume-high"
+              color={theme.gold}
+              label={t('w.site.urgentOnly')}
+              sub={t('w.site.urgentOnlyText')}
+              right={sw(!!me.data.urgent_sound_only, (v) => patch.mutate({ urgent_sound_only: v }))}
+              last
+            />
+          </>
+        ) : null}
+      </Group>
+
+      {/* Akkaunt */}
+      <Group title={t('w.extra.account')}>
+        {tg.data?.enabled !== false ? (
+          <Row
+            icon="paper-plane"
+            color="#2aabee"
+            label={t('w.site.telegram')}
+            sub={linked ? t('w.site.telegramOn') : t('w.site.telegramOff')}
+            onPress={() => (linked ? disconnect.mutate() : connect.mutate())}
+            right={
+              <View
+                style={{
+                  paddingHorizontal: 11,
+                  height: 30,
+                  borderRadius: 15,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: linked ? theme.card2 : theme.orange,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: '800',
+                    color: linked ? theme.muted : '#fff',
+                  }}
+                >
+                  {connect.isPending || disconnect.isPending
+                    ? '…'
+                    : linked
+                      ? t('w.site.disconnect')
+                      : t('w.site.connect')}
+                </Text>
+              </View>
+            }
+          />
+        ) : null}
         <Row
-          icon="shield-checkmark-outline"
-          label={t('w.more.account')}
-          onPress={() => router.push('/account')}
-        />
-        <Row
-          icon="lock-closed-outline"
+          icon="lock-closed"
+          color="#e87a45"
           label={t('w.more.changePassword')}
           onPress={() => router.push('/change-password')}
         />
+        <Row icon="log-out" color={theme.muted} label={t('w.more.logout')} onPress={signOut} last />
+      </Group>
+
+      {/* Xavfli hudud */}
+      <Group title={t('w.extra.deleteAccount')} danger>
         <Row
-          icon="help-circle-outline"
-          label={t('w.more.help')}
-          onPress={() => router.push('/help')}
+          icon="trash"
+          danger
+          label={t('w.extra.deleteAccount')}
+          sub={blockers.length ? undefined : t('w.extra.deleteHint')}
+          onPress={
+            preview.isPending || blockers.length > 0
+              ? undefined
+              : () =>
+                  appConfirm({
+                    title: t('w.extra.deleteAccount'),
+                    message: t('w.extra.deleteConfirm'),
+                    confirmLabel: t('w.delete'),
+                    destructive: true,
+                    onConfirm: () => del.mutate(),
+                  })
+          }
+          right={del.isPending ? <Muted>…</Muted> : null}
+          last={!blockers.length}
         />
-        <Row
-          icon="bulb-outline"
-          label={t('w.more.suggestions')}
-          onPress={() => router.push(supportRoute('suggestion'))}
-        />
-      </Card>
+        {blockers.map((b, i) => (
+          <View
+            key={i}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingHorizontal: 14,
+              paddingVertical: 9,
+              borderTopWidth: 1,
+              borderTopColor: theme.border,
+            }}
+          >
+            <Ionicons name="alert-circle" size={16} color={theme.red} />
+            <Text style={{ flex: 1, color: theme.red, fontSize: 12.5, fontWeight: '600' }}>
+              {String(b.message || b.code || b)}
+            </Text>
+          </View>
+        ))}
+      </Group>
 
-      {tg.data?.enabled !== false ? (
-        <Card>
-          <H>{t('w.site.telegram')}</H>
-          <Muted>{linked ? t('w.site.telegramOn') : t('w.site.telegramOff')}</Muted>
-          <Btn
-            kind={linked ? 'ghost' : 'primary'}
-            icon="paper-plane-outline"
-            label={linked ? t('w.site.disconnect') : t('w.site.connect')}
-            loading={connect.isPending || disconnect.isPending}
-            onPress={() => (linked ? disconnect.mutate() : connect.mutate())}
-          />
-        </Card>
-      ) : null}
-
-      {me.data ? (
-        <Card>
-          <H>{t('w.site.alerts')}</H>
-          <Row
-            icon="chatbubble-ellipses-outline"
-            label={t('w.site.alertsText')}
-            right={
-              <Switch
-                value={!!me.data.notify_new_orders_telegram}
-                onValueChange={(v) => patch.mutate({ notify_new_orders_telegram: v })}
-                trackColor={{ true: theme.orange }}
-              />
-            }
-          />
-          <Row
-            icon="volume-high-outline"
-            label={t('w.site.urgentOnly')}
-            right={
-              <Switch
-                value={!!me.data.urgent_sound_only}
-                onValueChange={(v) => patch.mutate({ urgent_sound_only: v })}
-                trackColor={{ true: theme.orange }}
-              />
-            }
-          />
-          <Muted>{t('w.site.urgentOnlyText')}</Muted>
-        </Card>
-      ) : null}
-
-      <Card style={{ paddingVertical: 6 }}>
-        <Row icon="log-out-outline" label={t('w.more.logout')} danger onPress={signOut} />
-      </Card>
       <TilBottomSheet
         visible={showLang}
         currentLang={language}

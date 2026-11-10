@@ -16,7 +16,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import AppLoader from '../components/AppLoader';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
-import { useAuth } from '../context/AuthContext';
 import { useCategoryTreeQuery } from '../queries/categories';
 import { useListingsFeed } from '../queries/listings';
 import { reelsRoute } from '../navigation/params';
@@ -24,7 +23,7 @@ import EmptyCard from './zakazchi-main/components/EmptyCard';
 import SectionError from './zakazchi-main/components/SectionError';
 import ListingCard from './listings/components/ListingCard';
 import ListingsFilters from './listings/components/ListingsFilters';
-import PriceFilterModal from './listings/components/PriceFilterModal';
+import ReelFilterSheet from './listings/components/ReelFilterSheet';
 
 const H_PAD = 20;
 const GAP = 12;
@@ -33,21 +32,14 @@ const NO_PRICE = { priceMin: null, priceMax: null, priced: null };
 
 // Usta xizmat e'lonlari: qidiruv, yo'nalish, narx va saralash filtrlari bilan ikki ustunli ro'yxat.
 // `workerId` berilsa faqat shu usta e'lonlari; `initialSaved` — "Saqlanganlar" ochiq holda boshlanadi.
-export default function ListingsScreen({
-  onBack,
-  initialSaved = false,
-  workerId = null,
-  workerName = '',
-}) {
+export default function ListingsScreen({ onBack, workerId = null, workerName = '' }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
-  const { signedIn } = useAuth();
   const { tree } = useCategoryTreeQuery();
 
-  const [saved, setSaved] = useState(initialSaved && signedIn && !workerId);
   const [queryInput, setQueryInput] = useState('');
   const [q, setQ] = useState('');
   const [parentId, setParentId] = useState(null);
@@ -55,7 +47,9 @@ export default function ListingsScreen({
   const [sort, setSort] = useState('new');
   const [price, setPrice] = useState(NO_PRICE);
   const [hasPhoto, setHasPhoto] = useState(false);
-  const [priceOpen, setPriceOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  // "Mutaxassis" filtri: tanlangan muallif ({ id, name }).
+  const [author, setAuthor] = useState(null);
 
   // Har harf uchun so'rov yuborilmasligi uchun qidiruv matni biroz kutib qo'llanadi.
   useEffect(() => {
@@ -67,49 +61,38 @@ export default function ListingsScreen({
     () => ({
       q,
       categoryId: subId ?? parentId,
-      workerId,
+      workerId: workerId ?? author?.id ?? null,
       sort,
       priceMin: price.priceMin,
       priceMax: price.priceMax,
       priced: price.priced,
       hasPhoto,
     }),
-    [q, subId, parentId, workerId, sort, price, hasPhoto]
+    [q, subId, parentId, workerId, author, sort, price, hasPhoto]
   );
 
-  const feed = useListingsFeed(filters, { saved });
+  const feed = useListingsFeed(filters);
 
   const cardWidth = (width - H_PAD * 2 - GAP) / 2;
   const title = workerName
     ? tr('listings.workerTitle', { name: workerName })
     : tr('listings.title');
-  const priceActive = price.priceMin != null || price.priceMax != null || price.priced != null;
-
-  const pickParent = (id) => {
-    setParentId(id);
-    setSubId(null);
-  };
+  const filtersActive =
+    parentId != null ||
+    sort !== 'new' ||
+    hasPhoto ||
+    !!author ||
+    price.priceMin != null ||
+    price.priceMax != null ||
+    price.priced != null;
 
   const header = (
     <View>
       <ListingsFilters
-        signedIn={signedIn && !workerId}
-        saved={saved}
-        onSavedChange={setSaved}
         query={queryInput}
         onQueryChange={setQueryInput}
-        tree={tree}
-        parentId={parentId}
-        subId={subId}
-        onPickParent={pickParent}
-        onPickSub={setSubId}
-        sort={sort}
-        onSortChange={setSort}
-        priceActive={priceActive}
-        onOpenPrice={() => setPriceOpen(true)}
-        hasPhoto={hasPhoto}
-        onTogglePhoto={() => setHasPhoto((v) => !v)}
-        hideCategories={!!workerId}
+        onOpenFilters={() => setFilterOpen(true)}
+        filtersActive={filtersActive}
       />
       {!feed.loading && !feed.error && feed.total > 0 && (
         <Text style={[s.count, { color: t.muted }]}>{tr('listings.count', { n: feed.total })}</Text>
@@ -129,15 +112,9 @@ export default function ListingsScreen({
   } else {
     empty = (
       <EmptyCard
-        icon={
-          <MaterialCommunityIcons
-            name={saved ? 'bookmark-outline' : 'text-box-search-outline'}
-            size={26}
-            color={t.muted}
-          />
-        }
-        title={tr(saved ? 'listings.savedEmptyTitle' : 'listings.emptyTitle')}
-        subtitle={tr(saved ? 'listings.savedEmptySub' : 'listings.emptySub')}
+        icon={<MaterialCommunityIcons name="text-box-search-outline" size={26} color={t.muted} />}
+        title={tr('listings.emptyTitle')}
+        subtitle={tr('listings.emptySub')}
       />
     );
   }
@@ -182,7 +159,7 @@ export default function ListingsScreen({
           <ListingCard
             listing={item}
             width={cardWidth}
-            onPress={(l) => router.push(reelsRoute(l, { filters, saved }))}
+            onPress={(l) => router.push(reelsRoute(l, { filters }))}
           />
         )}
         onEndReached={feed.loadMore}
@@ -200,15 +177,24 @@ export default function ListingsScreen({
         }
       />
 
-      <PriceFilterModal
-        visible={priceOpen}
-        value={price}
-        onClose={() => setPriceOpen(false)}
-        onApply={(next) => {
-          setPrice(next);
-          setPriceOpen(false);
-        }}
-      />
+      {filterOpen && (
+        <ReelFilterSheet
+          tree={tree}
+          value={{ parentId, subId, sort, price, hasPhoto, author }}
+          onApply={(next) => {
+            setParentId(next.parentId);
+            setSubId(next.subId);
+            setSort(next.sort);
+            setPrice(next.price);
+            setHasPhoto(next.hasPhoto);
+            setAuthor(next.author);
+            setFilterOpen(false);
+          }}
+          onClose={() => setFilterOpen(false)}
+          maxHeight={height * 0.8}
+          bottomInset={insets.bottom}
+        />
+      )}
     </SafeAreaView>
   );
 }

@@ -1,34 +1,16 @@
 import { memo, useState } from 'react';
 import { View, Text, Image, FlatList, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { VideoView } from 'expo-video';
-import { useAutoplayVideo } from '../../../utils/autoplayVideo';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useTheme } from '../../../context/ThemeContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import { encodeImageUri, priceText, timeAgo } from '../utils';
 import ReelActionButton from './ReelActionButton';
+import ListingVideo from './ListingVideo';
 
 const ORANGE = '#e87a45';
 const GOLD = '#f5c451';
 const RING = '#e87a45';
-
-// Orqa fondagi video: ovozsiz, takrorlanadi; faqat ko'rinib turgan sahifada (`active`) ijro etiladi.
-function ReelVideo({ uri, active, muted, width, height }) {
-  const player = useAutoplayVideo(uri, active, muted);
-  return (
-    <View pointerEvents="none" style={{ width, height }}>
-      <VideoView
-        player={player}
-        nativeControls={false}
-        contentFit="cover"
-        allowsPictureInPicture={false}
-        style={{ width, height }}
-      />
-    </View>
-  );
-}
 
 // Bitta e'lon — to'liq ekran: orqa fonda rasmlar (gorizontal suriladi), tepada orqaga/belgi,
 // o'ngda amallar, pastda usta, sarlavha, tavsif, narx va "Bog'lanish".
@@ -42,36 +24,28 @@ function ReelPage({
   onFilter,
   filterActive,
   onLike,
-  onSave,
   onComments,
   onShare,
   onDetails,
-  onContact,
   onOpenWorker,
-  onEdit,
   active = true,
 }) {
-  const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [sound, setSound] = useState(false); // video ovozi: sukut bo'yicha o'chiq
-  const [paused, setPaused] = useState(false); // video ustiga bosilganda to'xtatiladi/davom ettiriladi
   const worker = listing.worker;
   const photos = listing.photos;
-  // `onEdit` berilsa — bu o'z e'loni (usta ko'rinishi): saqlash, batafsil va usta qatori yo'q, "Bog'lanish" o'rniga "Tahrirlash".
-  const own = !!onEdit;
   const location = [worker?.location, timeAgo(listing.createdAt, tr)].filter(Boolean).join(' · ');
 
   return (
     <View style={{ width, height, backgroundColor: '#0b1117' }}>
       {listing.videoUrl ? (
-        <ReelVideo
+        <ListingVideo
           uri={listing.videoUrl}
-          active={active && !paused}
-          muted={!sound}
+          poster={listing.videoPoster ?? photos[0]}
           width={width}
           height={height}
+          active={active}
         />
       ) : photos.length > 0 ? (
         <FlatList
@@ -107,21 +81,6 @@ function ReelPage({
         </View>
       )}
 
-      {!!listing.videoUrl && (
-        <Pressable
-          onPress={() => setPaused((v) => !v)}
-          style={StyleSheet.absoluteFill}
-          accessibilityRole="button"
-          accessibilityLabel={tr(paused ? 'w.reel.play' : 'w.reel.pause')}
-        />
-      )}
-      {!!listing.videoUrl && paused && (
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, s.pausedWrap]}>
-          <View style={s.pausedCircle}>
-            <MaterialCommunityIcons name="play" size={44} color="#fff" />
-          </View>
-        </View>
-      )}
       <LinearGradient
         pointerEvents="none"
         colors={['rgba(0,0,0,0.55)', 'transparent']}
@@ -145,12 +104,6 @@ function ReelPage({
             <MaterialCommunityIcons name="chevron-left" size={26} color="#fff" />
           </TouchableOpacity>
         )}
-        {own && listing.isActive === false && (
-          <View style={[s.topBadge, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
-            <Ionicons name="eye-off" size={13} color="#fff" />
-            <Text style={[s.topBadgeTxt, { color: '#fff' }]}>{tr('w.listings.hidden')}</Text>
-          </View>
-        )}
         {listing.isTop && (
           <View style={s.topBadge}>
             <Ionicons name="flame" size={13} color={ORANGE} />
@@ -158,38 +111,12 @@ function ReelPage({
           </View>
         )}
         <View style={{ flex: 1 }} />
-        {photos.length > 1 && (
+        {!listing.videoUrl && photos.length > 1 && (
           <View style={s.counter}>
             <Text style={s.counterTxt}>
               {photoIndex + 1}/{photos.length}
             </Text>
           </View>
-        )}
-        {own && !!listing.videoUrl && (
-          <TouchableOpacity
-            onPress={() => setSound((v) => !v)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={tr(sound ? 'w.reel.soundOff' : 'w.reel.soundOn')}
-            style={s.backBtn}
-          >
-            <MaterialCommunityIcons
-              name={sound ? 'volume-high' : 'volume-off'}
-              size={22}
-              color="#fff"
-            />
-          </TouchableOpacity>
-        )}
-        {own && (
-          <TouchableOpacity
-            onPress={() => onEdit(listing)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={tr('w.listings.edit')}
-            style={s.backBtn}
-          >
-            <Ionicons name="create-outline" size={22} color="#fff" />
-          </TouchableOpacity>
         )}
         {!!onFilter && (
           <TouchableOpacity
@@ -217,9 +144,6 @@ function ReelPage({
       </View>
 
       <View style={[s.rail, { bottom: insets.bottom + 96 }]} pointerEvents="box-none">
-        {own && listing.viewCount != null && (
-          <ReelActionButton icon="eye-outline" label={String(listing.viewCount)} />
-        )}
         <ReelActionButton
           icon={listing.isLiked ? 'heart' : 'heart-outline'}
           active={listing.isLiked}
@@ -239,26 +163,15 @@ function ReelPage({
           label={tr('listings.reels.share')}
           onPress={() => onShare(listing)}
         />
-        {!own && (
-          <ReelActionButton
-            icon={listing.isFavorite ? 'bookmark' : 'bookmark-outline'}
-            active={listing.isFavorite}
-            activeColor={GOLD}
-            label={tr(listing.isFavorite ? 'listings.reels.saved' : 'listings.reels.save')}
-            onPress={() => onSave(listing)}
-          />
-        )}
-        {!own && (
-          <ReelActionButton
-            icon="open-in-new"
-            label={tr('listings.reels.details')}
-            onPress={() => onDetails(listing)}
-          />
-        )}
+        <ReelActionButton
+          icon="open-in-new"
+          label={tr('listings.reels.details')}
+          onPress={() => onDetails(listing)}
+        />
       </View>
 
       <View style={[s.info, { paddingBottom: insets.bottom + 16 }]} pointerEvents="box-none">
-        {!!worker && !own && (
+        {!!worker && (
           <TouchableOpacity
             onPress={() => onOpenWorker(worker)}
             activeOpacity={0.85}
@@ -300,6 +213,12 @@ function ReelPage({
         <Text style={s.title} numberOfLines={2}>
           {listing.title}
         </Text>
+        <Text
+          style={[s.price, { color: listing.price == null ? '#fff' : ORANGE }]}
+          numberOfLines={1}
+        >
+          {priceText(listing, tr)}
+        </Text>
         {!!location && (
           <View style={s.locRow}>
             <MaterialCommunityIcons name="map-marker-outline" size={15} color="#fff" />
@@ -315,25 +234,6 @@ function ReelPage({
             </Text>
           </Pressable>
         )}
-
-        <View style={s.buyRow}>
-          <Text
-            style={[s.price, { color: listing.price == null ? '#fff' : ORANGE }]}
-            numberOfLines={1}
-          >
-            {priceText(listing, tr)}
-          </Text>
-          {!own && (
-            <TouchableOpacity
-              onPress={() => onContact(listing)}
-              activeOpacity={0.88}
-              accessibilityRole="button"
-              style={[s.contactBtn, { backgroundColor: t.orange }]}
-            >
-              <Text style={s.contactTxt}>{tr('listings.reels.contact')}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
       </View>
     </View>
   );
@@ -343,16 +243,6 @@ export default memo(ReelPage);
 
 const s = StyleSheet.create({
   noPhoto: { alignItems: 'center', justifyContent: 'center' },
-  pausedWrap: { alignItems: 'center', justifyContent: 'center' },
-  pausedCircle: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingLeft: 4,
-  },
   topShade: { position: 'absolute', top: 0, left: 0, right: 0 },
   bottomShade: { position: 'absolute', bottom: 0, left: 0, right: 0 },
   topRow: {
@@ -422,8 +312,7 @@ const s = StyleSheet.create({
   loc: { flexShrink: 1, color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700' },
   descWrap: { marginTop: 6 },
   desc: { color: 'rgba(255,255,255,0.85)', fontSize: 14, lineHeight: 20 },
-  buyRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, marginRight: -60 },
-  price: { flex: 1, fontSize: 22, fontWeight: '900' },
+  price: { fontSize: 21, fontWeight: '900', marginTop: 4 },
   contactBtn: {
     height: 48,
     paddingHorizontal: 26,
@@ -432,6 +321,5 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 0,
   },
-  editBtn: { flexDirection: 'row', gap: 8 },
   contactTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
 });

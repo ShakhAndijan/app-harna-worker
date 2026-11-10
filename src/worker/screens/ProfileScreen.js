@@ -57,130 +57,13 @@ export function MenuItem({ icon, label, onPress, danger }) {
   );
 }
 
-// Til, mavzu va "Chiqish": profil yuklanmagan (masalan 403) holatda ham doim ko'rinib turadi.
-const LANGS = [
-  ['uz', '🇺🇿', "O'zbekcha", 'Salom!'],
-  ['ru', '🇷🇺', 'Русский', 'Привет!'],
-  ['en', '🇬🇧', 'English', 'Hello!'],
-];
+// "Chiqish": profil yuklanmagan (masalan 403) holatda ham doim ko'rinib turadi. Til va mavzu — Sozlamalarda.
 
 export function SessionCards() {
-  const [langOpen, setLangOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
-  const { t, language, setLanguage } = useLanguage();
-  const cur = LANGS.find((x) => x[0] === language) || LANGS[0];
+  const { t } = useLanguage();
   const { signOut } = useAuth();
   return (
     <>
-      <Card style={{ gap: 12 }}>
-        <TouchableOpacity
-          onPress={() => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setLangOpen((o) => !o);
-          }}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: langOpen }}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}
-        >
-          <View
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: 26,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.orange + '1F',
-              borderWidth: 2,
-              borderColor: theme.orange,
-            }}
-          >
-            <Text style={{ fontSize: 28 }}>{cur[1]}</Text>
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={{ color: theme.muted, fontSize: 12, fontWeight: '700' }}>
-              {t('w.profile.language')}
-            </Text>
-            <Text style={{ color: theme.text, fontSize: 18, fontWeight: '900' }}>{cur[2]}</Text>
-          </View>
-          <View
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 17,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.isDark ? '#ffffff14' : '#00000010',
-            }}
-          >
-            <Ionicons
-              name={langOpen ? 'chevron-up' : 'chevron-down'}
-              size={18}
-              color={theme.text}
-            />
-          </View>
-        </TouchableOpacity>
-        {langOpen ? (
-          <View style={{ gap: 10 }}>
-            {LANGS.map(([code, flag, label, hello]) => {
-              const on = language === code;
-              return (
-                <TouchableOpacity
-                  key={code}
-                  onPress={() => setLanguage(code)}
-                  activeOpacity={0.85}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: on }}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: 12,
-                    borderRadius: 20,
-                    borderWidth: on ? 2 : 1,
-                    borderColor: on ? theme.orange : theme.border,
-                    backgroundColor: on ? theme.orange + '14' : 'transparent',
-                  }}
-                >
-                  <Text style={{ fontSize: 34 }}>{flag}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontWeight: '800',
-                        color: on ? theme.orange : theme.text,
-                      }}
-                    >
-                      {label}
-                    </Text>
-                    <Text style={{ fontSize: 12.5, color: theme.muted }}>{hello}</Text>
-                  </View>
-                  <View
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 13,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: on ? theme.orange : 'transparent',
-                      borderWidth: on ? 0 : 1.5,
-                      borderColor: theme.border,
-                    }}
-                  >
-                    {on ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        ) : null}
-        <MenuItem
-          icon={theme.isDark ? 'sunny-outline' : 'moon-outline'}
-          label={t('w.profile.theme')}
-          onPress={toggleTheme}
-        />
-      </Card>
-
       <Card style={{ paddingVertical: 6 }}>
         <MenuItem
           icon="log-out-outline"
@@ -357,7 +240,7 @@ function ProfileTabs({ tabs, value, onChange }) {
 const nameOf = (v) => (v && typeof v === 'object' ? v.name : v) || '';
 
 // Plitka ichida o'zi ijro etiladigan video: ovozsiz, takrorlanadi, boshqaruv tugmalarisiz.
-function TileVideo({ uri }) {
+export function TileVideo({ uri }) {
   const player = useAutoplayVideo(uri);
   return (
     // Native video teginishlarni ushlab qolmasligi uchun teginishsiz o'ramda turadi (plitka bosilaveradi).

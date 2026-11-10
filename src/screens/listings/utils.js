@@ -1,4 +1,5 @@
 import { Share } from 'react-native';
+import { SITE_URL } from '../../constants/config';
 
 export const encodeImageUri = (uri) => (uri ? uri.replace(/\+/g, '%2B') : uri);
 
@@ -14,14 +15,16 @@ export function priceText(listing, tr) {
   return listing.priceKind === 'hourly' ? `${base} ${tr('listings.perHour')}` : base;
 }
 
-/** E'lonni tizim ulashish oynasi orqali yuboradi. */
+/** E'lonni tizim ulashish oynasi orqali yuboradi; oxirida saytdagi shu e'lon sahifasi havolasi. */
 export function shareListing(listing, tr) {
+  const text = tr('listings.detail.shareMessage', {
+    title: listing.title,
+    price: priceText(listing, tr),
+    name: listing.worker?.name ?? '',
+  });
   return Share.share({
-    message: tr('listings.detail.shareMessage', {
-      title: listing.title,
-      price: priceText(listing, tr),
-      name: listing.worker?.name ?? '',
-    }),
+    message: `${text}
+${SITE_URL}/listings/${listing.id}`,
   }).catch(() => {});
 }
 
@@ -39,6 +42,14 @@ export function timeAgo(iso, tr) {
   const days = Math.floor(hours / 24);
   if (days < 30) return tr('listings.ago.days', { n: days });
   return tr('listings.ago.months', { n: Math.floor(days / 30) });
+}
+
+/** Soniya → "1:05" (video davomiyligi). */
+export function formatVideoDuration(seconds) {
+  const total = Math.max(0, Math.round(Number(seconds) || 0));
+  const m = Math.floor(total / 60);
+  const s = String(total % 60).padStart(2, '0');
+  return `${m}:${s}`;
 }
 
 /** Matndan faqat raqamlarni qoldiradi (narx maydonlari uchun). */

@@ -10,7 +10,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
-import { KeyboardAwareScrollView, useKeyboardState } from 'react-native-keyboard-controller';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AppLoader from '../components/AppLoader';
@@ -24,9 +24,8 @@ import SectionError from './zakazchi-main/components/SectionError';
 import SectionHeader from './zakazchi-main/components/SectionHeader';
 import ListingCard from './listings/components/ListingCard';
 import ListingGallery from './listings/components/ListingGallery';
-import FavoriteButton from './listings/components/FavoriteButton';
+import ListingVideo from './listings/components/ListingVideo';
 import CommentsSection from './listings/components/CommentsSection';
-import useOrderListing from './listings/hooks/useOrderListing';
 import { priceText, timeAgo, encodeImageUri, workerToUsta, shareListing } from './listings/utils';
 
 const H_PAD = 20;
@@ -43,7 +42,6 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
   const { t: tr } = useLanguage();
   const { signedIn } = useAuth();
   const { categories } = useAllCategoriesQuery();
-  const keyboardVisible = useKeyboardState((st) => st.isVisible);
 
   const detail = useListingDetail(listingId);
   const listing = detail.listing ?? initial;
@@ -56,8 +54,6 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
   const goLogin = () => router.push('/login');
 
   const share = () => listing && shareListing(listing, tr);
-  const orderListing = useOrderListing();
-  const order = () => orderListing(listing);
 
   const header = (
     <View style={s.header}>
@@ -84,7 +80,6 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
           >
             <MaterialCommunityIcons name="share-variant-outline" size={20} color={t.text} />
           </TouchableOpacity>
-          <FavoriteButton listing={listing} size={40} />
         </>
       )}
     </View>
@@ -126,7 +121,20 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
         bottomOffset={96 + insets.bottom}
         mode="layout"
       >
-        <ListingGallery photos={listing.photos} width={width - H_PAD * 2} />
+        {!!listing.videoUrl && (
+          <ListingVideo
+            uri={listing.videoUrl}
+            poster={listing.videoPoster ?? listing.photos[0]}
+            width={width - H_PAD * 2}
+            height={Math.round((width - H_PAD * 2) * 0.75)}
+            controls
+            contentFit="contain"
+            style={{ borderRadius: 24, overflow: 'hidden', marginBottom: 12 }}
+          />
+        )}
+        {(listing.photos.length > 0 || !listing.videoUrl) && (
+          <ListingGallery photos={listing.photos} width={width - H_PAD * 2} />
+        )}
 
         <View style={s.metaRow}>
           {!!category && (
@@ -254,29 +262,6 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
           </View>
         )}
       </KeyboardAwareScrollView>
-
-      {!keyboardVisible && (
-        <View
-          style={[
-            s.cta,
-            {
-              backgroundColor: t.bg,
-              borderTopColor: t.border,
-              paddingBottom: Math.max(insets.bottom, 12),
-            },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={order}
-            activeOpacity={0.88}
-            accessibilityRole="button"
-            style={[s.ctaBtn, { backgroundColor: t.orange }]}
-          >
-            <Text style={s.ctaTxt}>{tr('listings.detail.orderCta')}</Text>
-            <MaterialCommunityIcons name="arrow-right" size={18} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      )}
     </SafeAreaView>
   );
 }

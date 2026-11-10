@@ -10,7 +10,9 @@ export default function SupportItemCard({ item }) {
   const tone = item.status === 'answered' ? t.green : item.status === 'closed' ? t.faint : t.gold;
 
   return (
-    <View style={[s.card, { backgroundColor: t.card, borderColor: t.border }]}>
+    <View
+      style={[s.card, { backgroundColor: t.card, borderColor: t.border, borderLeftColor: tone }]}
+    >
       <View style={s.head}>
         <View style={[s.status, { backgroundColor: tone + '22' }]}>
           <Text style={[s.statusText, { color: tone }]}>{tr(`support.status.${item.status}`)}</Text>
@@ -43,14 +45,14 @@ export default function SupportItemCard({ item }) {
 }
 
 const s = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 12 },
+  card: { borderWidth: 1, borderLeftWidth: 5, borderRadius: 22, padding: 14, gap: 12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   status: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   statusText: { fontSize: 12, fontWeight: '800' },
   date: { fontSize: 12, fontWeight: '600', flexShrink: 1 },
   mineRow: { alignItems: 'flex-end' },
   teamRow: { alignItems: 'flex-start' },
-  bubble: { maxWidth: '88%', borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10 },
+  bubble: { maxWidth: '88%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
   team: { fontSize: 12, fontWeight: '800', marginBottom: 3 },
   text: { fontSize: 14, lineHeight: 20 },
 });
