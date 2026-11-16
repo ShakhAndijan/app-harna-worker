@@ -23,6 +23,8 @@ import Avatar from '../../components/Avatar';
 import { getErrorMessage } from '../../utils/errors';
 import * as api from '../api';
 import { OrderCard } from '../components';
+import { getListingsPage } from '../../api/listings';
+import { reelsRoute } from '../../navigation/params';
 import {
   Screen,
   Card,
@@ -280,7 +282,7 @@ function MiniStat({ icon, n, color }) {
 }
 
 // Ixcham e'lon plitkasi: bir qatorda 2 tadan. Bosilsa e'lon to'liq ekranda ochiladi (tahrirlash tugmasi shu yerda), ko'z tugmasi — ko'rinadi/yashirin, uzoq bosilsa — o'chirish.
-function ListingTile({ l, t, onOpen, onToggle, onDelete, still }) {
+function ListingTile({ l, t, onOpen, onToggle, onDelete, still, readOnly }) {
   const { theme } = useTheme();
   const photo = l.photos?.[0];
   const views = l.view_count ?? l.views_count ?? l.views ?? null;
@@ -288,7 +290,7 @@ function ListingTile({ l, t, onOpen, onToggle, onDelete, still }) {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onOpen}
-      onLongPress={onDelete}
+      onLongPress={readOnly ? undefined : onDelete}
       style={{
         width: '48.5%',
         borderRadius: 18,
@@ -312,25 +314,27 @@ function ListingTile({ l, t, onOpen, onToggle, onDelete, still }) {
           </View>
         )}
         {l.video_url && !still ? <TileVideo uri={l.video_url} /> : null}
-        <TouchableOpacity
-          onPress={onToggle}
-          hitSlop={6}
-          accessibilityRole="button"
-          accessibilityLabel={l.is_active ? t('w.listings.visible') : t('w.listings.hidden')}
-          style={{
-            position: 'absolute',
-            top: 8,
-            right: 8,
-            width: 30,
-            height: 30,
-            borderRadius: 15,
-            backgroundColor: 'rgba(0,0,0,0.55)',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name={l.is_active ? 'eye' : 'eye-off'} size={16} color="#fff" />
-        </TouchableOpacity>
+        {readOnly ? null : (
+          <TouchableOpacity
+            onPress={onToggle}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={l.is_active ? t('w.listings.visible') : t('w.listings.hidden')}
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name={l.is_active ? 'eye' : 'eye-off'} size={16} color="#fff" />
+          </TouchableOpacity>
+        )}
         {l.is_top ? (
           <View
             style={{
@@ -493,7 +497,7 @@ function CompletedWorks({ w }) {
   );
 }
 
-function ReviewsList({ w }) {
+function ReviewsList({ w, readOnly }) {
   const { theme } = useTheme();
   const { t, language } = useLanguage();
   const q = useQuery({
@@ -520,7 +524,10 @@ function ReviewsList({ w }) {
           </Muted>
         </Card>
       ))}
-      <TouchableOpacity onPress={() => router.push('/my-reviews')} style={{ padding: 8 }}>
+      <TouchableOpacity
+        onPress={() => router.push('/my-reviews')}
+        style={{ padding: 8, display: readOnly ? 'none' : 'flex' }}
+      >
         <Txt style={{ color: theme.orange, fontWeight: '700', textAlign: 'center' }}>
           {t('w.site.loadMore')}
         </Txt>
@@ -940,6 +947,207 @@ export default function ProfileScreen() {
         value={tab}
         onChange={setTab}
         render={(v, still) => <TabPage v={v} w={w} still={still} />}
+      />
+    </Screen>
+  );
+}
+
+// ── Boshqa ustaning ommaviy profili (e'lonlardan ochiladi): o'z profilingiz bilan bir xil ko'rinish ──
+
+// Ommaviy ro'yxat e'loni → plitka kutadigan maydonlar.
+const tileOf = (l) => ({
+  id: l.id,
+  title: l.title,
+  price: l.price,
+  photos: l.photos,
+  video_url: l.videoUrl,
+  is_active: true,
+  is_top: l.isTop,
+  like_count: l.likeCount,
+  comment_count: l.commentCount,
+  view_count: l.viewCount,
+});
+
+function WorkerListingsTab({ workerId, still }) {
+  const router = useRouter();
+  const { t } = useLanguage();
+  const q = useQuery({
+    queryKey: ['listings', 'worker-profile', workerId],
+    queryFn: () => getListingsPage({ workerId, size: 50 }),
+    enabled: !!workerId,
+  });
+  if (q.isPending) return <Loading />;
+  if (q.isError) return <ErrorBox error={q.error} onRetry={q.refetch} />;
+  const items = q.data?.items || [];
+  if (!items.length) return <Empty icon="megaphone-outline" text={t('w.profile.noListings')} />;
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        rowGap: 12,
+      }}
+    >
+      {items.map((l) => (
+        <ListingTile
+          key={l.id}
+          l={tileOf(l)}
+          t={t}
+          still={still}
+          readOnly
+          onOpen={() => router.push(reelsRoute(l, { filters: { workerId } }))}
+        />
+      ))}
+    </View>
+  );
+}
+
+// "Ishlarim" tabi: ish namunalari (portfolio) rasmlari.
+function WorkerSamples({ w }) {
+  const { t } = useLanguage();
+  const { theme } = useTheme();
+  const samples = (w.portfolio || [])
+    .map((p) => {
+      const ph = (p.photos || [])[0];
+      return { id: p.id, uri: typeof ph === 'string' ? ph : ph?.url };
+    })
+    .filter((x) => x.uri);
+  if (!samples.length) return <Empty icon="hammer-outline" text={t('w.profile.noWorks')} />;
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+      {samples.map((x) => (
+        <View
+          key={x.id}
+          style={{ width: '32.4%', aspectRatio: 1, borderRadius: 12, overflow: 'hidden' }}
+        >
+          <Image
+            source={{ uri: x.uri }}
+            style={{ flex: 1, backgroundColor: theme.card }}
+            resizeMode="cover"
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const PublicTabPage = memo(function PublicTabPage({ v, w, still }) {
+  return (
+    <View style={{ gap: 12 }}>
+      {v === 'listings' ? <WorkerListingsTab workerId={w.id} still={still} /> : null}
+      {v === 'works' ? <WorkerSamples w={w} /> : null}
+      {v === 'reviews' ? <ReviewsList w={w} readOnly /> : null}
+      {v === 'info' ? <InfoTab w={w} /> : null}
+    </View>
+  );
+});
+
+export function PublicProfileScreen({ workerId, onBack }) {
+  const { theme } = useTheme();
+  const { t } = useLanguage();
+  const [tab, setTab] = useState('listings');
+  const q = useQuery({
+    queryKey: ['w', 'public', workerId],
+    queryFn: () => api.getWorkerPublic(workerId),
+    enabled: !!workerId,
+  });
+
+  if (q.isPending)
+    return (
+      <Screen back onBack={onBack} title={t('w.profile.title')}>
+        <Loading />
+      </Screen>
+    );
+  if (q.isError) {
+    return (
+      <Screen back onBack={onBack} title={t('w.profile.title')}>
+        <ErrorBox error={q.error} onRetry={q.refetch} />
+      </Screen>
+    );
+  }
+  const w = q.data;
+  const name = [w.first_name, w.last_name].filter(Boolean).join(' ');
+  const rating = w.overall_rating ? Number(w.overall_rating).toFixed(1) : '—';
+  const place = [nameOf(w.region), nameOf(w.district)].filter(Boolean).join(', ');
+
+  return (
+    <Screen back={false} onRefresh={q.refetch} refreshing={q.isRefetching}>
+      {/* Yuqori qator: chapda orqaga, o'rtada laqab */}
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity
+          onPress={onBack}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+          style={{ width: 40, alignItems: 'flex-start' }}
+        >
+          <Ionicons name="chevron-back" size={30} color={theme.text} />
+        </TouchableOpacity>
+        <Txt
+          numberOfLines={1}
+          style={{ flex: 1, textAlign: 'center', fontSize: 19, fontWeight: '800' }}
+        >
+          {w.nickname || name}
+        </Txt>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        <Avatar size={84} letter={(w.first_name || 'U')[0]} uri={w.profile_photo} />
+        <View style={{ flex: 1, gap: 10 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Txt style={{ flexShrink: 1, fontSize: 18, fontWeight: '800' }} numberOfLines={1}>
+              {name}
+            </Txt>
+            {w.is_identity_verified ? (
+              <Ionicons name="shield-checkmark" size={18} color={theme.green} />
+            ) : null}
+          </View>
+          <View style={{ flexDirection: 'row' }}>
+            <Stat
+              value={`★ ${rating}`}
+              label={`${t('w.profile.rating')} (${w.review_count ?? 0})`}
+            />
+            <Stat value={w.completed_jobs_count ?? 0} label={t('w.profile.jobs')} />
+            <Stat value={w.likes_count ?? 0} label={t('w.profile.likes')} />
+          </View>
+        </View>
+      </View>
+
+      <View style={{ gap: 8 }}>
+        {w.is_pro || w.is_top ? (
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {w.is_pro ? <Pill label="PRO" color={theme.violet} /> : null}
+            {w.is_top ? <Pill label="TOP" color={theme.gold} /> : null}
+          </View>
+        ) : null}
+        {place ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name="location-outline" size={15} color={theme.orange} />
+            <Muted style={{ flex: 1 }} numberOfLines={1}>
+              {place}
+            </Muted>
+          </View>
+        ) : null}
+      </View>
+
+      <ProfileTabs
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: 'listings', label: t('w.profile.tabListings'), icon: 'megaphone' },
+          { value: 'works', label: t('w.profile.tabWorks'), icon: 'hammer' },
+          { value: 'reviews', label: t('w.profile.tabReviews'), icon: 'chatbubble' },
+          { value: 'info', label: t('w.profile.tabInfo'), icon: 'person-circle' },
+        ]}
+      />
+
+      <SwipeTabs
+        order={TAB_ORDER}
+        value={tab}
+        onChange={setTab}
+        render={(v, still) => <PublicTabPage v={v} w={w} still={still} />}
       />
     </Screen>
   );

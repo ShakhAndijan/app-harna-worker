@@ -18,6 +18,8 @@ const post = (path, body) => send('POST', path, body ?? {});
 
 // ── Profil ──
 export const getMe = () => get('/workers/me');
+// Boshqa ustaning ommaviy profili (e'lonlardan ochiladi): o'z profili bilan bir xil maydonlar.
+export const getWorkerPublic = (workerId) => get(`/workers/${workerId}`);
 export const patchMe = (body) => send('PATCH', '/workers/me', body);
 export const getStatus = () => get('/workers/me/status');
 export const setAvailability = (body) => send('PATCH', '/workers/me/online', body);

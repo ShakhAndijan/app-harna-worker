@@ -1,5 +1,13 @@
 import { useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  StyleSheet,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter } from 'expo-router';
@@ -32,6 +40,8 @@ export default function WorkerOrdersScreen() {
   const [jobTab, setJobTab] = useState('active');
   const [allRegions, setAllRegions] = useState(false);
   const [sort, setSort] = useState('new');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filtersActive = allRegions || sort === 'price';
 
   const feed = useOpenFeed(allRegions);
   const offers = useMyOffers();
@@ -94,9 +104,28 @@ export default function WorkerOrdersScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ padding: 20, paddingBottom: bottomSpace }}
       >
-        <Text style={{ color: t.text, fontSize: 26, fontWeight: '800', marginBottom: 16 }}>
-          {tr('workerOrders.title')}
-        </Text>
+        <View style={s.titleRow}>
+          <Text style={{ flex: 1, color: t.text, fontSize: 26, fontWeight: '800' }}>
+            {tr('workerOrders.title')}
+          </Text>
+          {tab === 'new' && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setFilterOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={tr('workerOrders.filterTitle')}
+              style={[
+                s.filterBtn,
+                {
+                  backgroundColor: filtersActive ? t.orange : t.card,
+                  borderColor: filtersActive ? t.orange : t.border,
+                },
+              ]}
+            >
+              <Ionicons name="options" size={20} color={filtersActive ? '#fff' : t.text} />
+            </TouchableOpacity>
+          )}
+        </View>
 
         {gate.locked && (
           <TouchableOpacity
@@ -116,27 +145,7 @@ export default function WorkerOrdersScreen() {
 
         <Segment items={mainTabs} value={tab} onChange={setTab} t={t} />
 
-        {tab === 'new' && (
-          <>
-            <View style={s.filters}>
-              <Chip
-                active={allRegions}
-                icon="earth"
-                label={tr('workerOrders.allRegions')}
-                onPress={() => setAllRegions((v) => !v)}
-                t={t}
-              />
-              <Chip
-                active={sort === 'price'}
-                icon="cash-outline"
-                label={tr('workerOrders.sortPrice')}
-                onPress={() => setSort((v) => (v === 'price' ? 'new' : 'price'))}
-                t={t}
-              />
-            </View>
-            {renderList(feed, newItems, 'search-outline', 'emptyNew')}
-          </>
-        )}
+        {tab === 'new' && <>{renderList(feed, newItems, 'search-outline', 'emptyNew')}</>}
 
         {tab === 'offers' && (
           <>
@@ -173,7 +182,119 @@ export default function WorkerOrdersScreen() {
           </>
         )}
       </ScrollView>
+      <FilterSheet
+        visible={filterOpen}
+        allRegions={allRegions}
+        sort={sort}
+        onClose={() => setFilterOpen(false)}
+        onApply={(r, so) => {
+          setAllRegions(r);
+          setSort(so);
+          setFilterOpen(false);
+        }}
+        t={t}
+        tr={tr}
+      />
     </SafeAreaView>
+  );
+}
+
+// Filtr oynasi: hudud va saralash bitta joyda; "Qo'llash" bosilganda ro'yxatga ta'sir qiladi.
+function FilterSheet({ visible, allRegions, sort, onClose, onApply, t, tr }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      {visible && (
+        <SheetBody
+          allRegions={allRegions}
+          sort={sort}
+          onClose={onClose}
+          onApply={onApply}
+          t={t}
+          tr={tr}
+        />
+      )}
+    </Modal>
+  );
+}
+
+function SheetBody({ allRegions, sort, onClose, onApply, t, tr }) {
+  const [r, setR] = useState(allRegions);
+  const [so, setSo] = useState(sort);
+  const label = (text) => <Text style={[s.sheetLabel, { color: t.muted }]}>{text}</Text>;
+  return (
+    <View style={s.backdrop}>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <View style={[s.sheet, { backgroundColor: t.bg, borderColor: t.border }]}>
+        <View style={s.sheetHead}>
+          <Text style={{ flex: 1, color: t.text, fontSize: 18, fontWeight: '800' }}>
+            {tr('workerOrders.filterTitle')}
+          </Text>
+          <TouchableOpacity onPress={onClose} hitSlop={12} accessibilityRole="button">
+            <Ionicons name="close" size={22} color={t.muted} />
+          </TouchableOpacity>
+        </View>
+
+        {label(tr('workerOrders.filterRegion'))}
+        <View style={s.filters}>
+          <Chip
+            active={!r}
+            icon="location-outline"
+            label={tr('workerOrders.myRegion')}
+            onPress={() => setR(false)}
+            t={t}
+          />
+          <Chip
+            active={r}
+            icon="earth"
+            label={tr('workerOrders.allRegions')}
+            onPress={() => setR(true)}
+            t={t}
+          />
+        </View>
+
+        {label(tr('workerOrders.filterSort'))}
+        <View style={s.filters}>
+          <Chip
+            active={so === 'new'}
+            icon="time-outline"
+            label={tr('workerOrders.sortNew')}
+            onPress={() => setSo('new')}
+            t={t}
+          />
+          <Chip
+            active={so === 'price'}
+            icon="cash-outline"
+            label={tr('workerOrders.sortPrice')}
+            onPress={() => setSo('price')}
+            t={t}
+          />
+        </View>
+
+        <View style={s.sheetActions}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => {
+              setR(false);
+              setSo('new');
+            }}
+            style={[s.sheetBtn, { backgroundColor: t.card, borderColor: t.border, borderWidth: 1 }]}
+          >
+            <Text style={{ color: t.text, fontSize: 14.5, fontWeight: '800' }}>
+              {tr('workerOrders.filterReset')}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => onApply(r, so)}
+            style={[s.sheetBtn, { backgroundColor: t.orange, flex: 1.4 }]}
+          >
+            <Text style={{ color: '#fff', fontSize: 14.5, fontWeight: '800' }}>
+              {tr('workerOrders.filterApply')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -205,7 +326,41 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
     marginBottom: 14,
   },
-  filters: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 },
+  filterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  sheet: {
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    padding: 18,
+    paddingBottom: 28,
+  },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
+  sheetLabel: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  sheetActions: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  sheetBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',

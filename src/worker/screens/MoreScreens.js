@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../context/ThemeContext';
@@ -505,7 +506,126 @@ function LocationForm({ w, regions }) {
 
   return (
     <Screen title={t('w.more.location')}>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
+      {/* Hero: xarita nuqtasi, ish radiusi halqalari va qisqa xulosa */}
+      <TouchableOpacity
+        onPress={() => setMapOpen(true)}
+        activeOpacity={0.9}
+        accessibilityRole="button"
+        accessibilityLabel={t('w.more.point')}
+      >
+        <LinearGradient
+          colors={theme.isDark ? ['#1a2236', '#2b1f3f'] : ['#26304a', '#3b2a55']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={{ borderRadius: 28, padding: 18, overflow: 'hidden', minHeight: 196 }}
+        >
+          <View
+            pointerEvents="none"
+            style={{ position: 'absolute', right: -28, top: -10, width: 210, height: 210 }}
+          >
+            {[210, 150, 92].map((d, i) => (
+              <View
+                key={d}
+                style={{
+                  position: 'absolute',
+                  left: (210 - d) / 2,
+                  top: (210 - d) / 2,
+                  width: d,
+                  height: d,
+                  borderRadius: d / 2,
+                  borderWidth: 1.5,
+                  borderColor: `rgba(255,255,255,${0.1 + i * 0.07})`,
+                  backgroundColor: `rgba(240,138,85,${0.04 + i * 0.05})`,
+                }}
+              />
+            ))}
+            <View
+              style={{
+                position: 'absolute',
+                left: 85,
+                top: 85,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.orange,
+                shadowColor: theme.orange,
+                shadowOpacity: 0.6,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 8,
+              }}
+            >
+              <Ionicons name="location" size={22} color="#fff" />
+            </View>
+          </View>
+
+          <View style={{ flex: 1, justifyContent: 'space-between', gap: 18 }}>
+            <View style={{ gap: 4, maxWidth: '62%' }}>
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.65)',
+                  fontSize: 11.5,
+                  fontWeight: '800',
+                  letterSpacing: 0.6,
+                  textTransform: 'uppercase',
+                }}
+              >
+                {t('w.more.location')}
+              </Text>
+              <Text style={{ color: '#fff', fontSize: 30, fontWeight: '900' }}>
+                {mode === 'radius' ? (km ? `${km} km` : '—') : `${pickedSet.size || '—'}`}
+              </Text>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '700' }}>
+                {mode === 'radius' ? t('w.more.byRadius') : t('w.more.byDistricts')}
+              </Text>
+            </View>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                paddingHorizontal: 12,
+                height: 46,
+                borderRadius: 16,
+                backgroundColor: 'rgba(255,255,255,0.12)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.18)',
+              }}
+            >
+              <Ionicons
+                name="navigate"
+                size={17}
+                color={point.lat != null && point.lng != null ? theme.orange : '#fff'}
+              />
+              <Text
+                style={{ flex: 1, color: '#fff', fontSize: 13.5, fontWeight: '700' }}
+                numberOfLines={1}
+              >
+                {point.lat != null && point.lng != null
+                  ? addr === ''
+                    ? t('w.more.pointSet')
+                    : addr || t('w.more.pointLoading')
+                  : t('w.more.pointNone')}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Rejim tanlash: tabletka ko'rinishidagi ikki bo'lakli almashtirgich */}
+      <View
+        style={{
+          flexDirection: 'row',
+          padding: 4,
+          borderRadius: 20,
+          backgroundColor: theme.card,
+          borderWidth: 1,
+          borderColor: theme.border,
+        }}
+      >
         {modes.map(([key, icon, label]) => {
           const on = mode === key;
           return (
@@ -514,29 +634,30 @@ function LocationForm({ w, regions }) {
               onPress={() => setMode(key)}
               activeOpacity={0.85}
               accessibilityRole="button"
+              accessibilityState={{ selected: on }}
               style={{
                 flex: 1,
-                gap: 10,
-                padding: 14,
-                borderRadius: 22,
-                borderWidth: on ? 1.5 : 1,
-                borderColor: on ? theme.orange : theme.border,
-                backgroundColor: on ? theme.orange + '14' : theme.card,
+                height: 44,
+                borderRadius: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                backgroundColor: on ? theme.orange : 'transparent',
               }}
             >
-              <View
+              <Ionicons name={icon} size={18} color={on ? '#fff' : theme.muted} />
+              <Text
+                numberOfLines={1}
                 style={{
-                  width: 42,
-                  height: 42,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: on ? theme.orange : theme.orange + '1F',
+                  color: on ? '#fff' : theme.muted,
+                  fontSize: 13.5,
+                  fontWeight: '800',
+                  flexShrink: 1,
                 }}
               >
-                <Ionicons name={icon} size={22} color={on ? '#fff' : theme.orange} />
-              </View>
-              <Text style={{ color: theme.text, fontSize: 14.5, fontWeight: '800' }}>{label}</Text>
+                {label}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -561,6 +682,23 @@ function LocationForm({ w, regions }) {
               {km || '—'} km
             </Text>
             {stepBtn('add', () => setRadius(String(Math.min(60, km + 1))), true)}
+          </View>
+          <View
+            style={{
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: theme.bg,
+              borderWidth: 1,
+              borderColor: theme.border,
+              overflow: 'hidden',
+            }}
+          >
+            <LinearGradient
+              colors={[theme.orange, '#f5a623']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ width: `${(km / 60) * 100}%`, height: '100%', borderRadius: 4 }}
+            />
           </View>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             {[5, 10, 20, 30, 50].map((n) => {
@@ -705,60 +843,6 @@ function LocationForm({ w, regions }) {
           </View>
         </View>
       )}
-
-      <TouchableOpacity
-        onPress={() => setMapOpen(true)}
-        activeOpacity={0.85}
-        accessibilityRole="button"
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
-          padding: 14,
-          borderRadius: 24,
-          borderWidth: 1,
-          borderColor: point.lat != null && point.lng != null ? theme.orange : theme.border,
-          backgroundColor: theme.card,
-        }}
-      >
-        <View
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor:
-              point.lat != null && point.lng != null ? theme.orange : theme.orange + '1F',
-          }}
-        >
-          <Ionicons
-            name="location"
-            size={24}
-            color={point.lat != null && point.lng != null ? '#fff' : theme.orange}
-          />
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ color: theme.text, fontSize: 16, fontWeight: '800' }}>
-            {t('w.more.point')}
-          </Text>
-          <Text
-            style={{
-              color: point.lat != null && point.lng != null ? theme.orange : theme.muted,
-              fontSize: 13,
-              fontWeight: '700',
-            }}
-            numberOfLines={1}
-          >
-            {point.lat != null && point.lng != null
-              ? addr === ''
-                ? t('w.more.pointSet')
-                : addr || t('w.more.pointLoading')
-              : t('w.more.pointNone')}
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={theme.faint} />
-      </TouchableOpacity>
 
       <Modal visible={mapOpen} animationType="slide" onRequestClose={() => setMapOpen(false)}>
         <View style={{ flex: 1, backgroundColor: theme.bg }}>

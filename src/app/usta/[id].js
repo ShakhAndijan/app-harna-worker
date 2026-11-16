@@ -1,34 +1,15 @@
-import { useMemo } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import UstaDetailScreen from '../../screens/UstaDetailScreen';
-import { useAuth } from '../../context/AuthContext';
+import { useLocalSearchParams } from 'expo-router';
+import { PublicProfileScreen } from '../../worker/screens/ProfileScreen';
 import useGoBack from '../../navigation/useGoBack';
-import { complaintRoute, decodeParam, orderWorkerRoute, workRoute } from '../../navigation/params';
 
-// Usta profili. Ro'yxatdan kelsa `data` (qisqa ma'lumot) bor, deep link bo'lsa faqat `id` —
-// qolganini ekran backenddan yuklaydi.
+// Boshqa ustaning profili (e'lonlardan ochiladi): o'z profil tabidagidek ko'rinadi.
 export default function UstaRoute() {
-  const router = useRouter();
-  const goBack = useGoBack();
-  const { signedIn } = useAuth();
-  const { id, data } = useLocalSearchParams();
-
-  const usta = useMemo(() => {
-    const parsed = decodeParam(data);
-    if (parsed?.id != null) return parsed;
-    const numericId = Number(id);
-    return { ...parsed, id: Number.isFinite(numericId) ? numericId : undefined };
-  }, [id, data]);
-
+  const { id } = useLocalSearchParams();
+  const workerId = Number(Array.isArray(id) ? id[0] : id);
   return (
-    <UstaDetailScreen
-      usta={usta}
-      isLoggedIn={signedIn}
-      onBack={goBack}
-      onGoToLogin={() => router.push('/login')}
-      onOrderWorker={(worker) => router.push(orderWorkerRoute(worker))}
-      onSelectWork={(work) => router.push(workRoute(work))}
-      onReport={(worker) => router.push(complaintRoute(worker))}
+    <PublicProfileScreen
+      workerId={Number.isFinite(workerId) ? workerId : null}
+      onBack={useGoBack()}
     />
   );
 }
