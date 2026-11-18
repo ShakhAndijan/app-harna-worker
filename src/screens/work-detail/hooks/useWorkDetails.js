@@ -34,7 +34,8 @@ export default function useWorkDetails(work) {
   const mock = mockWorkDetails(work);
   const realCategory = pub?.category?.name ?? work?.category ?? null;
   const realLocation = work?.location ?? null;
-  const realDate = pub?.completed_at ?? work?.completedAt ?? pub?.created_at ?? work?.createdAt ?? null;
+  const realDate =
+    pub?.completed_at ?? work?.completedAt ?? pub?.created_at ?? work?.createdAt ?? null;
   const realPostedAgo = realDate ? formatTimeAgo(realDate, tr) : '';
   const realPrice = Number(work?.price) > 0 ? Number(work.price) : null;
   const realDuration = work?.duration ? String(work.duration) : null;

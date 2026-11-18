@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View, Text } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,6 +28,33 @@ import {
 } from '../ui';
 
 const PRESETS = [50000, 100000, 200000, 500000];
+
+const BAL_TEXTS = {
+  uz: {
+    withdrawable: 'Yechib olish mumkin',
+    withdrawableHint: "Mijozlar ish uchun onlayn to'lagan pul",
+    services: 'Faqat xizmatlar uchun',
+    servicesHint: "Siz to'ldirgan pul: komissiya, TOP va Pro uchun, yechib bo'lmaydi",
+    bonus: 'Bonus balans',
+    bonusHint: "Faqat taklif uchun to'lovga sarflanadi, yechib bo'lmaydi",
+  },
+  ru: {
+    withdrawable: 'Можно вывести',
+    withdrawableHint: 'Деньги, которые клиенты оплатили онлайн за работу',
+    services: 'Только для услуг',
+    servicesHint: 'Пополненные вами деньги: идут на комиссию, TOP и Pro, вывести нельзя',
+    bonus: 'Бонусный баланс',
+    bonusHint: 'Тратится только на оплату за подбор, вывести нельзя',
+  },
+  en: {
+    withdrawable: 'Available to withdraw',
+    withdrawableHint: 'Money customers paid online for your work',
+    services: 'For services only',
+    servicesHint: 'Money you topped up: used for fees, TOP and Pro, cannot be withdrawn',
+    bonus: 'Bonus balance',
+    bonusHint: 'Only spent on match fees, cannot be withdrawn',
+  },
+};
 
 export default function WalletScreen() {
   const { theme } = useTheme();
@@ -89,6 +117,7 @@ export default function WalletScreen() {
     );
   }
   const b = bal.data;
+  const x = BAL_TEXTS[language] ?? BAL_TEXTS.uz;
 
   return (
     <Screen
@@ -111,10 +140,6 @@ export default function WalletScreen() {
               {t('w.wallet.held')}: {money(b.held_balance, t)}
             </Muted>
           ) : null}
-          <Muted>
-            {t('w.site.bonus')}: {money(b.bonus_balance, t)}
-          </Muted>
-          <Muted>{t('w.site.bonusHint')}</Muted>
           {b.fees_enabled && num(b.offer_fee) > 0 ? (
             <Muted>
               {t('w.wallet.offerFee')}: {money(b.offer_fee, t)}
@@ -122,6 +147,49 @@ export default function WalletScreen() {
           ) : null}
         </View>
       </Card>
+
+      {/* Balans turlari: yechish mumkin / faqat xizmatlar / bonus (sayt bilan bir xil) */}
+      <View style={{ gap: 10 }}>
+        {[
+          ['cash-outline', theme.green, x.withdrawable, b.withdrawable_balance, x.withdrawableHint],
+          ['construct-outline', theme.orange, x.services, b.prepaid_balance, x.servicesHint],
+          ['gift-outline', theme.violet, x.bonus, b.bonus_balance, x.bonusHint],
+        ].map(([icon, color, title, value, hint]) => (
+          <View
+            key={title}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 12,
+              padding: 14,
+              borderRadius: 18,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 13,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: color + '22',
+              }}
+            >
+              <Ionicons name={icon} size={20} color={color} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Muted style={{ fontSize: 12 }}>{title}</Muted>
+              <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800' }}>
+                {money(value ?? 0, t)}
+              </Text>
+              <Muted style={{ fontSize: 11.5, lineHeight: 15, marginTop: 2 }}>{hint}</Muted>
+            </View>
+          </View>
+        ))}
+      </View>
 
       <Segments
         value={tab}

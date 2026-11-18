@@ -44,7 +44,9 @@ export default function ReturningCustomerSection({ summary, onOpenOrders, onReor
             <View style={s.body}>
               <Text style={[s.label, { color: STATUS_META.active.color }]}>
                 {tr('homeExtra.activeOrder')}
-                {active.length > 1 ? ` · ${tr('homeExtra.activeMore', { n: active.length - 1 })}` : ''}
+                {active.length > 1
+                  ? ` · ${tr('homeExtra.activeMore', { n: active.length - 1 })}`
+                  : ''}
               </Text>
               <Text style={[s.title, { color: t.text }]} numberOfLines={1}>
                 {activeTitle}

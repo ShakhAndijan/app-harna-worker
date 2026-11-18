@@ -57,7 +57,13 @@ export function CustomerReviewCard({ rating, text, t }) {
 const s = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 16, padding: 14 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
-  youAvatar: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  youAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   name: { fontSize: 13.5, fontWeight: '700' },
   text: { fontSize: 13, lineHeight: 19 },
 });

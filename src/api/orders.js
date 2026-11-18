@@ -155,6 +155,18 @@ export function mapOrder(o) {
     budget,
     reposted: !!o.reposted,
     customerRated: !!o.customer_rated,
+    // Sayt bilan bir xil oqim uchun xom maydonlar (to'lov, omonat, kafolat, kelish tekshiruvi, shikoyat).
+    windowStart: o.window_start ?? null,
+    windowEnd: o.window_end ?? null,
+    workPhotos: o.work_photos ?? null,
+    matchComplaint: o.match_complaint ?? null,
+    arrivalCheck: o.arrival_check ?? null,
+    workerArrivedAt: o.worker_arrived_at ?? null,
+    guarantee: o.guarantee ?? null,
+    guaranteeClaim: o.guarantee_claim ?? null,
+    deposit: o.deposit ?? null,
+    customerFinalComment: o.customer_final_comment ?? null,
+    workerFinalComment: o.worker_final_comment ?? null,
   };
 }
 

@@ -9,6 +9,9 @@ import {
   agreeOrder,
   declineOrder,
   workDone,
+  markArrived,
+  fileComplaint,
+  answerNoShow,
 } from '../api/workerApp';
 import { useWorkerMe } from './workerHome';
 
@@ -61,4 +64,8 @@ export const useWithdrawOffer = () => useOrderAction((id) => withdrawOffer(id));
 export const useRepriceOffer = () => useOrderAction(({ id, payload }) => repriceOffer(id, payload));
 export const useAgreeOrder = () => useOrderAction((id) => agreeOrder(id));
 export const useDeclineOrder = () => useOrderAction((id) => declineOrder(id));
-export const useWorkDone = () => useOrderAction((id) => workDone(id));
+export const useWorkDone = () => useOrderAction(({ id, keys }) => workDone(id, keys));
+export const useMarkArrived = () => useOrderAction(({ id, coords }) => markArrived(id, coords));
+export const useAnswerNoShow = () => useOrderAction(({ id, came }) => answerNoShow(id, came));
+export const useFileComplaint = () =>
+  useOrderAction(({ id, note, kind }) => fileComplaint(id, { note, kind }));

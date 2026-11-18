@@ -10,7 +10,16 @@ import {
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { common } from '../styles';
 
-export default function OptionSheet({ visible, onClose, title, options, selectedId, onSelect, t, tr }) {
+export default function OptionSheet({
+  visible,
+  onClose,
+  title,
+  options,
+  selectedId,
+  onSelect,
+  t,
+  tr,
+}) {
   return (
     <Modal
       visible={visible}

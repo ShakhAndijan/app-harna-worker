@@ -9,9 +9,7 @@ export default function OrderSuccessCard({ order, onClose }) {
   const { t: tr } = useLanguage();
 
   return (
-    <View
-      style={[s.card, { backgroundColor: t.card, borderColor: 'rgba(31,163,124,0.35)' }]}
-    >
+    <View style={[s.card, { backgroundColor: t.card, borderColor: 'rgba(31,163,124,0.35)' }]}>
       <View style={[s.iconWrap, { backgroundColor: '#1FA37C' }]}>
         <MaterialCommunityIcons name="check" size={18} color="#fff" />
       </View>

@@ -22,6 +22,7 @@ import OrderActions from './orders/components/OrderActions';
 import ContactsCard from './orders/components/ContactsCard';
 import DescriptionCard from './orders/components/DescriptionCard';
 import PromptModal from './requests/components/PromptModal';
+import CustomerOrderExtras from './customer-order/CustomerOrderExtras';
 import RepostModal from './requests/components/RepostModal';
 import useOrderActions from './requests/hooks/useOrderActions';
 import { isOpenOrder } from './requests/utils';
@@ -181,6 +182,10 @@ export default function OrderDetailScreen({ order: listOrder, onBack, onSelectUs
             <CustomerReviewCard rating={extras.customerRating} text={extras.customerNote} t={t} />
           </>
         )}
+
+        <View style={{ marginTop: 16 }}>
+          <CustomerOrderExtras order={order} onChanged={() => refresh().catch(() => {})} />
+        </View>
 
         <OrderActions
           isOpen={isOpenOrder(order)}

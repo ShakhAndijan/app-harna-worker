@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { View, Switch } from 'react-native';
+import { View, Switch, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import useTelegramLink from '../../screens/profile/hooks/useTelegramLink';
+import { formatPhoneDisplay } from '../../screens/profile/utils';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -144,8 +147,86 @@ export function ComplaintsScreen() {
   );
 }
 
+const ACCOUNT_TEXTS = {
+  uz: {
+    login: 'Kirish ma‘lumotlari',
+    phone: 'Telefon raqami',
+    email: 'Email',
+    change: 'O‘zgartirish',
+    verify: 'Tasdiqlash',
+  },
+  ru: {
+    login: 'Данные для входа',
+    phone: 'Номер телефона',
+    email: 'Email',
+    change: 'Изменить',
+    verify: 'Подтвердить',
+  },
+  en: {
+    login: 'Sign-in details',
+    phone: 'Phone number',
+    email: 'Email',
+    change: 'Change',
+    verify: 'Verify',
+  },
+};
+
+// Hisob qatori: ikonka, nom, qiymat (+ holat belgisi) va o'ngda amal tugmasi.
+function LinkRow({ icon, label, value, tag, tagOk, action, danger, onPress }) {
+  const { theme } = useTheme();
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderTopColor: theme.border,
+      }}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.orange + '22',
+        }}
+      >
+        <Ionicons name={icon} size={19} color={theme.orange} />
+      </View>
+      <View style={{ flex: 1, gap: 1 }}>
+        <Muted style={{ fontSize: 12 }}>{label}</Muted>
+        <Txt style={{ fontWeight: '700', fontSize: 14 }} numberOfLines={1}>
+          {value}
+        </Txt>
+        {tag ? (
+          <Txt
+            style={{ fontSize: 11.5, fontWeight: '800', color: tagOk ? theme.green : theme.gold }}
+          >
+            {tag}
+          </Txt>
+        ) : null}
+      </View>
+      <TouchableOpacity onPress={onPress} hitSlop={8} activeOpacity={0.7}>
+        <Txt
+          style={{ fontWeight: '800', fontSize: 13.5, color: danger ? theme.red : theme.orange }}
+        >
+          {action}
+        </Txt>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export function AccountScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const router = useRouter();
+  const x = ACCOUNT_TEXTS[language] ?? ACCOUNT_TEXTS.uz;
+  const acct = useQuery({ queryKey: ['w', 'account-me'], queryFn: api.getAccountMe });
+  const tgLink = useTelegramLink(true);
   const { theme } = useTheme();
   const { signOut } = useAuth();
   const tg = useQuery({ queryKey: ['w', 'tgStatus'], queryFn: api.getTelegramStatus });
@@ -248,23 +329,44 @@ export function AccountScreen() {
           })}
         </View>
       ) : null}
-      <Card>
-        <H>Telegram</H>
-        {tg.isPending ? (
-          <Loading />
-        ) : tg.isError ? (
-          <Muted>{t('w.loadFailed')}</Muted>
-        ) : (
-          <Row
-            label={t('w.extra.telegramStatus')}
-            value={
-              !tg.data?.enabled
-                ? t('w.extra.tgOff')
-                : tg.data?.linked
-                  ? t('w.extra.tgLinked')
-                  : t('w.extra.tgNotLinked')
-            }
+      <Card style={{ gap: 4 }}>
+        <H>{x.login}</H>
+        <LinkRow
+          icon="call-outline"
+          label={x.phone}
+          value={acct.data?.phone ? formatPhoneDisplay(acct.data.phone) : '—'}
+          action={x.change}
+          onPress={() => router.push('/change-phone')}
+        />
+        <LinkRow
+          icon="mail-outline"
+          label={x.email}
+          value={acct.data?.email || t('account.email.statusNone')}
+          tag={
+            acct.data?.email
+              ? t(
+                  acct.data.is_email_verified !== false
+                    ? 'account.email.statusVerified'
+                    : 'account.email.statusUnverified'
+                )
+              : null
+          }
+          tagOk={acct.data?.is_email_verified !== false}
+          action={acct.data?.email && acct.data.is_email_verified !== false ? x.change : x.verify}
+          onPress={() => router.push('/verify-email')}
+        />
+        {tgLink.available ? (
+          <LinkRow
+            icon="paper-plane-outline"
+            label="Telegram"
+            value={tgLink.linked ? t('account.telegram.linked') : t('w.extra.tgNotLinked')}
+            tagOk={tgLink.linked}
+            action={tgLink.linked ? t('account.telegram.unlink') : t('account.telegram.connect')}
+            danger={tgLink.linked}
+            onPress={tgLink.toggle}
           />
+        ) : (
+          <Row label="Telegram" value={tg.isPending ? '…' : t('w.extra.tgOff')} />
         )}
       </Card>
       <Card style={{ borderColor: theme.red }}>

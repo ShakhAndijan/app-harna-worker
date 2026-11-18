@@ -21,6 +21,11 @@ export const getMe = () => get('/workers/me');
 // Boshqa ustaning ommaviy profili (e'lonlardan ochiladi): o'z profili bilan bir xil maydonlar.
 export const getWorkerPublic = (workerId) => get(`/workers/${workerId}`);
 export const patchMe = (body) => send('PATCH', '/workers/me', body);
+// Jins — hisob darajasidagi maydon (mijoz profili bilan umumiy): GET/PATCH /customers/me.
+export const getAccountMe = () => get('/customers/me');
+export const patchAccountMe = (body) => send('PATCH', '/customers/me', body);
+export const getLanguages = () => get('/languages');
+export const getGenders = () => get('/genders');
 export const getStatus = () => get('/workers/me/status');
 export const setAvailability = (body) => send('PATCH', '/workers/me/online', body);
 export const getStats = (days) => get('/workers/me/stats', { days });

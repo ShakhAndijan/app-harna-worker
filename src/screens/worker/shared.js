@@ -14,7 +14,10 @@ export function timingLabel(order, tr) {
   return tr('workerHome.flexible');
 }
 
-export const orderPrice = (o) => o.agreed_price ?? o.offer_price ?? o.budget;
+// Qo'shimcha ish kelishilgan bo'lsa — jami narx (kelishilgan + qo'shimcha).
+export const orderPrice = (o) =>
+  (o.agreed_price && Number(o.extras_total ?? 0) > 0 && o.total_price) ||
+  (o.agreed_price ?? o.offer_price ?? o.budget);
 
 export function Segment({ items, value, onChange, t, small }) {
   return (

@@ -15,6 +15,12 @@ const DAYS = [0, 1, 2, 3, 4, 5, 6];
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const trimTime = (s) => (s ? String(s).slice(0, 5) : '');
 
+const SCHEDULE_TEXTS = {
+  uz: { all: '24/7', copyMon: 'Dushanbani hammasiga' },
+  ru: { all: '24/7', copyMon: 'Пн на все дни' },
+  en: { all: '24/7', copyMon: 'Apply Monday to all' },
+};
+
 // Haftalik ish jadvali: kun yoqiladi, ish vaqti boshlanish/tugash soati bilan beriladi.
 // Jadvalda yo'q kunlar — dam olish kunlari.
 export default function ScheduleScreen() {
@@ -33,7 +39,7 @@ export default function ScheduleScreen() {
 function ScheduleForm({ schedule }) {
   const router = useRouter();
   const { theme } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const qc = useQueryClient();
   const [days, setDays] = useState(() => {
     const next = {};
@@ -77,6 +83,15 @@ function ScheduleForm({ schedule }) {
     (d) => days[d].on && (!HHMM.test(days[d].start) || !HHMM.test(days[d].end))
   );
   const set = (d, patch) => setDays((p) => ({ ...p, [d]: { ...p[d], ...patch } }));
+
+  // 24/7: barcha kunlar yoqiladi, 00:00–23:59. Dushanba (id 0) vaqti qolgan kunlarga ko'chiriladi.
+  const all24 = () =>
+    setDays(Object.fromEntries(DAYS.map((d) => [d, { on: true, start: '00:00', end: '23:59' }])));
+  const copyMonday = () =>
+    setDays((p) =>
+      Object.fromEntries(DAYS.map((d) => [d, { on: p[0].on, start: p[0].start, end: p[0].end }]))
+    );
+  const x = SCHEDULE_TEXTS[language] ?? SCHEDULE_TEXTS.uz;
 
   const onDays = DAYS.filter((d) => days[d].on);
   const mins = (x) => Number(x.slice(0, 2)) * 60 + Number(x.slice(3));
@@ -179,6 +194,42 @@ function ScheduleForm({ schedule }) {
           ))}
         </View>
       </LinearGradient>
+
+      {/* Tezkor amallar: 24/7 va Dushanbani hammasiga qo'llash */}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {[
+          ['flash-outline', x.all, all24],
+          ['copy-outline', x.copyMon, copyMonday],
+        ].map(([icon, label, onPress]) => (
+          <TouchableOpacity
+            key={label}
+            onPress={onPress}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              paddingVertical: 12,
+              paddingHorizontal: 8,
+              borderRadius: 16,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+            }}
+          >
+            <Ionicons name={icon} size={17} color={theme.orange} />
+            <Text
+              numberOfLines={1}
+              style={{ color: theme.text, fontSize: 13, fontWeight: '800', flexShrink: 1 }}
+            >
+              {label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {DAYS.map((d) => {
         const on = days[d].on;

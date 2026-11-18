@@ -19,6 +19,7 @@ import { appAlert } from '../../components/AppAlert';
 import { getErrorMessage } from '../../utils/errors';
 import * as api from '../api';
 import { Screen, Card, Btn, Field, Muted, Txt, Loading, ErrorBox } from '../ui';
+import BirthDateSheet from '../../screens/edit-profile/components/BirthDateSheet';
 
 export default function ProfileEditScreen() {
   const { t } = useLanguage();
@@ -274,9 +275,52 @@ function PickerSheet({ visible, title, options, value, onPick, onClose }) {
   );
 }
 
+const EXTRA_TEXTS = {
+  uz: { birth: "Tug'ilgan sana", gender: 'Jinsi', languages: 'Tillar' },
+  ru: { birth: 'Дата рождения', gender: 'Пол', languages: 'Языки' },
+  en: { birth: 'Date of birth', gender: 'Gender', languages: 'Languages' },
+};
+
+// Chiplar qatori: bir yoki bir nechta qiymat tanlash (jins, tillar).
+function Chips({ label, options, selected, onToggle }) {
+  const { theme } = useTheme();
+  if (!options.length) return null;
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ color: theme.muted, fontSize: 11.5, fontWeight: '700' }}>{label}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {options.map((o) => {
+          const on = selected.includes(o.value);
+          return (
+            <TouchableOpacity
+              key={String(o.value)}
+              onPress={() => onToggle(o.value)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              style={{
+                paddingHorizontal: 16,
+                height: 38,
+                borderRadius: 19,
+                justifyContent: 'center',
+                backgroundColor: on ? theme.orange : theme.card2,
+                borderWidth: 1,
+                borderColor: on ? theme.orange : theme.border,
+              }}
+            >
+              <Text style={{ color: on ? '#fff' : theme.text, fontSize: 14, fontWeight: '700' }}>
+                {o.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 function ProfileForm({ w, regions }) {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const qc = useQueryClient();
   const { theme } = useTheme();
   const avatar = useMutation({
@@ -299,6 +343,16 @@ function ProfileForm({ w, regions }) {
     experience_years: w.experience_years != null ? String(w.experience_years) : '',
     work_radius_km: w.work_radius_km != null ? String(w.work_radius_km) : '',
   });
+  // Qo'shimcha maydonlar: tug'ilgan sana, tillar (usta profili) va jins (hisob profili).
+  const x = EXTRA_TEXTS[language] ?? EXTRA_TEXTS.uz;
+  const [birthDate, setBirthDate] = useState(w.birth_date || '');
+  const [dateOpen, setDateOpen] = useState(false);
+  const [langIds, setLangIds] = useState((w.languages ?? []).map((l) => l.id));
+  const languages = useQuery({ queryKey: ['w', 'languages'], queryFn: api.getLanguages });
+  const genders = useQuery({ queryKey: ['w', 'genders'], queryFn: api.getGenders });
+  const account = useQuery({ queryKey: ['w', 'account-me'], queryFn: api.getAccountMe });
+  const [pickedGender, setPickedGender] = useState(undefined);
+  const genderId = pickedGender !== undefined ? pickedGender : (account.data?.gender?.id ?? null);
   // Joriy viloyat nomi bo'yicha ID topiladi (GET nom qaytaradi, PATCH esa ID kutadi).
   const [regionId, setRegionId] = useState(regions.find((x) => x.name === w.region)?.id ?? null);
   const [pickedDistrict, setPickedDistrict] = useState(null);
@@ -314,13 +368,19 @@ function ProfileForm({ w, regions }) {
   const set = (k) => (v) => setF((p) => ({ ...p, [k]: v }));
 
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const body = {
         first_name: f.first_name.trim(),
         last_name: f.last_name.trim(),
         nickname: f.nickname.trim() || null,
         bio: f.bio.trim() || null,
+        birth_date: birthDate || null,
+        languages: langIds,
       };
+      // Jins o'zgargan bo'lsa — hisob profiliga alohida yoziladi.
+      if (pickedGender !== undefined && pickedGender !== (account.data?.gender?.id ?? null)) {
+        await api.patchAccountMe({ gender_id: pickedGender });
+      }
       if (f.experience_years !== '') body.experience_years = Number(f.experience_years);
       if (f.work_radius_km !== '') {
         body.work_area_mode = 'radius';
@@ -396,7 +456,35 @@ function ProfileForm({ w, regions }) {
           />
         </View>
         <Field label={t('w.edit.nickname')} value={f.nickname} onChangeText={set('nickname')} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <SelectField
+            label={x.birth}
+            value={birthDate ? birthDate.split('-').reverse().join('.') : ''}
+            placeholder={t('w.edit.select')}
+            onPress={() => setDateOpen(true)}
+          />
+        </View>
+        <Chips
+          label={x.gender}
+          options={(genders.data ?? []).map((g) => ({ value: g.id, label: g.name }))}
+          selected={genderId == null ? [] : [genderId]}
+          onToggle={(id) => setPickedGender(id === genderId ? null : id)}
+        />
+        <Chips
+          label={x.languages}
+          options={(languages.data ?? []).map((l) => ({ value: l.id, label: l.name }))}
+          selected={langIds}
+          onToggle={(id) =>
+            setLangIds((p) => (p.includes(id) ? p.filter((v) => v !== id) : [...p, id]))
+          }
+        />
       </Section>
+      <BirthDateSheet
+        visible={dateOpen}
+        onClose={() => setDateOpen(false)}
+        value={birthDate}
+        onChange={setBirthDate}
+      />
 
       <Section
         icon="chatbubble-ellipses-outline"

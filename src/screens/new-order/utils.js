@@ -43,7 +43,9 @@ export function formatPhone(raw) {
 
 export function stripCountryCode(raw) {
   if (!raw) return '';
-  return String(raw).replace(/^\+?998/, '').trim();
+  return String(raw)
+    .replace(/^\+?998/, '')
+    .trim();
 }
 
 export function formatMoney(value) {

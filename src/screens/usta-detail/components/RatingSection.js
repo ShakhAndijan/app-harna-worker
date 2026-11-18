@@ -11,7 +11,9 @@ function RatingBar({ label, pct }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <Text style={st.barLabel}>{label}</Text>
-      <View style={st.barTrack}>{pct > 0 && <View style={[st.barFill, { width: pct + '%' }]} />}</View>
+      <View style={st.barTrack}>
+        {pct > 0 && <View style={[st.barFill, { width: pct + '%' }]} />}
+      </View>
       <Text style={st.barPct}>{pct}%</Text>
     </View>
   );
@@ -19,7 +21,13 @@ function RatingBar({ label, pct }) {
 
 // Reyting kartochkasi: o'rtacha baho, sharhlar soni va 5★–1★ taqsimoti.
 // `reviewCount` — backenddan; `reviewItemsCount` — portfoliodagi baholangan ishlar soni.
-export default function RatingSection({ rating, rawRating, reviewCount, reviewItemsCount, ratingBreakdown }) {
+export default function RatingSection({
+  rating,
+  rawRating,
+  reviewCount,
+  reviewItemsCount,
+  ratingBreakdown,
+}) {
   const { t: tr } = useLanguage();
   const { C, st } = useUstaStyles();
 

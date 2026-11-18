@@ -18,13 +18,8 @@ export default function FavoriteWorkers({ state, onSelectUsta, onBrowse, onRetry
   const { t: tr } = useLanguage();
   const saved = state.data ?? [];
 
-  const {
-    listRef,
-    activeIndex,
-    onScrollBeginDrag,
-    onScrollEndDrag,
-    onMomentumScrollEnd,
-  } = useAutoCarousel({ length: saved.length, step: SAVED_STEP, interval: 2500, trackActive: true });
+  const { listRef, activeIndex, onScrollBeginDrag, onScrollEndDrag, onMomentumScrollEnd } =
+    useAutoCarousel({ length: saved.length, step: SAVED_STEP, interval: 2500, trackActive: true });
 
   if (state.loading) return <SectionLoader height={150} />;
 

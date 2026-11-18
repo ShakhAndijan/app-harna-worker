@@ -2,11 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 
 export default function OrdersTabs({ tabs, active, onChange, counts, t }) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={s.row}
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.row}>
       {tabs.map((tb) => {
         const isActive = tb.key === active;
         return (

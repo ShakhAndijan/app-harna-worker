@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -20,12 +21,20 @@ import {
 } from '../../queries/notifications';
 import { notificationDate, notificationDetail, notificationHref, notificationText } from './utils';
 
+const FILTER_TEXTS = {
+  uz: { all: 'Hammasi', unread: "O'qilmagan" },
+  ru: { all: 'Все', unread: 'Непрочитанные' },
+  en: { all: 'All', unread: 'Unread' },
+};
+
 // Bildirishnomalar ro'yxati (saytdagi qo'ng'iroqcha paneli): o'qilmaganlar ajratib ko'rsatiladi,
 // bosilsa o'qilgan bo'ladi va tegishli ekran ochiladi; tepada "Hammasini o'qildi".
 export default function NotificationsList() {
   const router = useRouter();
   const { theme: t } = useTheme();
-  const { t: tr } = useLanguage();
+  const { t: tr, language } = useLanguage();
+  const x = FILTER_TEXTS[language] ?? FILTER_TEXTS.uz;
+  const [onlyUnread, setOnlyUnread] = useState(false);
   const feed = useNotificationsFeed();
   const unread = useUnreadNotifications();
   const markRead = useMarkNotificationRead();
@@ -49,7 +58,7 @@ export default function NotificationsList() {
 
   return (
     <FlatList
-      data={feed.items}
+      data={onlyUnread ? feed.items.filter((n) => !n.isRead) : feed.items}
       keyExtractor={(n) => String(n.id)}
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40, gap: 8, flexGrow: 1 }}
       onEndReached={feed.fetchMore}
@@ -57,17 +66,49 @@ export default function NotificationsList() {
       refreshing={feed.refreshing}
       onRefresh={feed.refetch}
       ListHeaderComponent={
-        unread > 0 ? (
-          <TouchableOpacity
-            style={s.markAll}
-            activeOpacity={0.7}
-            disabled={markAll.isPending}
-            onPress={() => markAll.mutate()}
-          >
-            <MaterialCommunityIcons name="check-all" size={17} color={t.orange} />
-            <Text style={[s.markAllText, { color: t.orange }]}>{tr('notifList.markAll')}</Text>
-          </TouchableOpacity>
-        ) : null
+        <View style={s.headRow}>
+          {/* Filtr: hammasi / faqat o'qilmaganlar */}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {[
+              [false, x.all],
+              [true, unread > 0 ? `${x.unread} · ${unread}` : x.unread],
+            ].map(([val, label]) => {
+              const on = onlyUnread === val;
+              return (
+                <TouchableOpacity
+                  key={label}
+                  onPress={() => setOnlyUnread(val)}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  style={[
+                    s.chip,
+                    {
+                      backgroundColor: on ? t.orange : t.card,
+                      borderColor: on ? t.orange : t.border,
+                    },
+                  ]}
+                >
+                  <Text style={{ color: on ? '#fff' : t.text, fontSize: 13, fontWeight: '700' }}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={{ flex: 1 }} />
+          {unread > 0 ? (
+            <TouchableOpacity
+              style={s.markAll}
+              activeOpacity={0.7}
+              disabled={markAll.isPending}
+              onPress={() => markAll.mutate()}
+            >
+              <MaterialCommunityIcons name="check-all" size={17} color={t.orange} />
+              <Text style={[s.markAllText, { color: t.orange }]}>{tr('notifList.markAll')}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       }
       ListEmptyComponent={
         <View style={s.center}>
@@ -114,13 +155,13 @@ export default function NotificationsList() {
 const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 60 },
   empty: { fontSize: 14 },
+  headRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
+  chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, borderWidth: 1 },
   markAll: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-end',
     gap: 5,
     paddingVertical: 6,
-    marginBottom: 4,
   },
   markAllText: { fontSize: 13, fontWeight: '700' },
   row: {

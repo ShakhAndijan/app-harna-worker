@@ -69,10 +69,15 @@ export default function WorkerOrdersScreen() {
     [assigned.data, jobTab]
   );
 
+  const jobCount = (k) =>
+    assigned.data
+      ? assigned.data.filter((o) => JOB_STATUSES[k].includes(o.status)).length
+      : undefined;
+
   const mainTabs = [
     ['new', tr('workerOrders.tabNew'), feed.data?.length],
     ['offers', tr('workerOrders.tabOffers'), offers.data?.length],
-    ['jobs', tr('workerOrders.tabJobs')],
+    ['jobs', tr('workerOrders.tabJobs'), jobCount('active')],
   ];
 
   const renderList = (query, items, icon, emptyKey) => (
@@ -152,8 +157,8 @@ export default function WorkerOrdersScreen() {
             <Segment
               small
               items={[
-                ['sent', tr('workerOrders.subSent')],
-                ['rejected', tr('workerOrders.subRejected')],
+                ['sent', tr('workerOrders.subSent'), sentItems.length],
+                ['rejected', tr('workerOrders.subRejected'), rejectedItems.length],
               ]}
               value={offerTab}
               onChange={setOfferTab}
@@ -170,9 +175,9 @@ export default function WorkerOrdersScreen() {
             <Segment
               small
               items={[
-                ['active', tr('workerHome.activeTab')],
-                ['done', tr('workerHome.doneTab')],
-                ['cancelled', tr('workerHome.cancelledTab')],
+                ['active', tr('workerHome.activeTab'), jobCount('active')],
+                ['done', tr('workerHome.doneTab'), jobCount('done')],
+                ['cancelled', tr('workerHome.cancelledTab'), jobCount('cancelled')],
               ]}
               value={jobTab}
               onChange={setJobTab}

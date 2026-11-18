@@ -83,7 +83,12 @@ export default function BirthDateSheet({ visible, onClose, value, onChange }) {
       <View style={s.dateWheelWrap}>
         <View style={[s.dateHighlight, { backgroundColor: t.rowIconBg }]} pointerEvents="none" />
         <DateColumn values={days} value={day} onChange={setDay} />
-        <DateColumn values={months} value={month} onChange={changeMonth} format={(m) => monthNames[m - 1]} />
+        <DateColumn
+          values={months}
+          value={month}
+          onChange={changeMonth}
+          format={(m) => monthNames[m - 1]}
+        />
         <DateColumn values={years} value={year} onChange={changeYear} />
       </View>
 

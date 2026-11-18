@@ -17,14 +17,8 @@ export default function WorksCarousel({ works, onSelectWork }) {
   const { t: tr } = useLanguage();
   const total = works.length;
 
-  const {
-    listRef,
-    activeIndex,
-    onScrollBeginDrag,
-    onScrollEndDrag,
-    onMomentumScrollEnd,
-    hold,
-  } = useAutoCarousel({ length: total, step: WK_SLOT, trackActive: true });
+  const { listRef, activeIndex, onScrollBeginDrag, onScrollEndDrag, onMomentumScrollEnd, hold } =
+    useAutoCarousel({ length: total, step: WK_SLOT, trackActive: true });
 
   if (total === 0) {
     return (

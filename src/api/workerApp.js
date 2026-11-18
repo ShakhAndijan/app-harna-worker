@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../constants/config';
 import { request } from '../utils/request';
+import { uploadImageToPresignedUrl } from './auth';
 
 // Usta ilovasining asosiy endpointlari (Swagger: Workers / Orders / Wallet). Javoblar
 // konvertdan ochilgan `response_data` holida qaytadi; pul qiymatlari satr (Decimal) bo'lib keladi.
@@ -59,6 +60,35 @@ export const getRejectedOrders = () =>
   call('/orders/me/worker/rejected', 'Rad etilganlar yuklanmadi');
 export const getOrder = (orderId) => call(`/orders/${orderId}`, 'Buyurtma yuklanmadi');
 
+// Tugagan buyurtma bo'yicha mijozni baholash (har bir buyurtmaga bir marta, keyin o'zgartirib bo'lmaydi).
+export const rateCustomer = (orderId, { rating, comment }) =>
+  call(`/reviews/orders/${orderId}/customer`, "Bahoni yuborib bo'lmadi", {
+    method: 'POST',
+    body: { rating, comment: comment?.trim() || undefined },
+  });
+
+// Qo'shimcha ish: usta mijozga narx bilan taklif qiladi; mijoz rozi bo'lsa jami narxga qo'shiladi.
+export const proposeExtra = (orderId, { description, price }) =>
+  call(`/orders/${orderId}/extras`, "Taklifni yuborib bo'lmadi", {
+    method: 'POST',
+    body: { description: description?.trim() || null, price: String(price) },
+  });
+
+// Buyurtma bosqichlari (etaplar): usta rejalaydi va "bajarildi" deb belgilaydi, mijoz tasdiqlaydi.
+// Holatlar: pending → done → confirmed. Rejalashda faqat `pending` bosqichlar yuboriladi.
+export const getOrderStages = (orderId) =>
+  call(`/orders/${orderId}/stages`, 'Bosqichlar yuklanmadi');
+export const planOrderStages = (orderId, stages) =>
+  call(`/orders/${orderId}/stages`, "Bosqichlarni saqlab bo'lmadi", {
+    method: 'PUT',
+    body: { stages },
+  });
+export const markStageDone = (orderId, stageId) =>
+  call(`/orders/${orderId}/stages/${stageId}/done`, "Bosqichni belgilab bo'lmadi", {
+    method: 'POST',
+    body: {},
+  });
+
 const orderAction = (orderId, action, fallbackMessage, body = {}) =>
   call(`/orders/${orderId}/${action}`, fallbackMessage, { method: 'POST', body });
 
@@ -83,7 +113,58 @@ export const declineOrder = (orderId) => orderAction(orderId, 'decline', "Rad et
 export const rejectOrder = (orderId) => orderAction(orderId, 'reject', "Rad etib bo'lmadi");
 export const skipOrder = (orderId, reason) =>
   orderAction(orderId, 'skip', "O'tkazib yuborib bo'lmadi", { reason });
-export const workDone = (orderId) => orderAction(orderId, 'work-done', "Ishni yakunlab bo'lmadi");
+// Sayt "Ish bajarildi" tugmasini kamida bitta "ishdan keyingi" foto bo'lmasa o'chirib qo'yadi;
+// foto `work-photos/upload-slot` orqali yuklanib, `temp_key` lari bilan yuboriladi.
+export const workDone = (orderId, afterPhotoKeys = []) =>
+  orderAction(
+    orderId,
+    'work-done',
+    "Ishni yakunlab bo'lmadi",
+    afterPhotoKeys.length ? { after_photo_temp_keys: afterPhotoKeys } : {}
+  );
+export const uploadWorkPhoto = async (orderId, uri, contentType = 'image/jpeg') => {
+  const { upload_url, temp_key } = await call(
+    `/orders/${orderId}/work-photos/upload-slot`,
+    "Rasmni yuklab bo'lmadi",
+    { method: 'POST', body: { content_type: contentType } }
+  );
+  await uploadImageToPresignedUrl(upload_url, uri, contentType);
+  return temp_key;
+};
+/** Ishdan oldingi suratlar (nizoda himoya): avval `uploadWorkPhoto`, so'ng shu yerda temp_key lar. */
+export const addBeforePhotos = (orderId, tempKeys) =>
+  orderAction(orderId, 'work-photos', "Suratlarni qo'shib bo'lmadi", {
+    kind: 'before',
+    temp_keys: tempKeys,
+  });
+/** Buyurtmada xarita nuqtasi yo'q: mijozdan nuqta so'raladi; javobda `next_request_at` (qayta so'rash vaqti). */
+export const requestLocation = (orderId) =>
+  orderAction(orderId, 'location/request', "So'rovni yuborib bo'lmadi");
+/** "Yetib keldim":qurilma joylashuvi mijoz nuqtasi bilan solishtiriladi. */
+export const markArrived = (orderId, { lat, lng, accuracy_m }) =>
+  orderAction(orderId, 'arrived', "Yetib kelganingizni belgilab bo'lmadi", {
+    lat,
+    lng,
+    accuracy_m,
+  });
+/** kind: 'no_contact' (mijoz bilan bog'lana olmadim) | 'no_work' (kelganimda ish qildirmadi). */
+export const fileComplaint = (orderId, { note, kind = 'no_contact' }) =>
+  orderAction(orderId, 'complaint', "Shikoyatni yuborib bo'lmadi", {
+    note: note?.trim() || null,
+    kind,
+  });
+/** Mijoz "usta kelmadi" deb bildirganda usta javobi: came=true (keldim) | false (kelmadim → bekor). */
+export const answerNoShow = (orderId, came) =>
+  orderAction(orderId, 'no-show/answer', "Javobni yuborib bo'lmadi", { came: !!came });
+/** Kafolat da'vosiga javob: fix=true (tuzatib beraman) | false (rad etaman, operator hal qiladi). */
+export const answerGuaranteeClaim = (orderId, fix) =>
+  orderAction(orderId, 'guarantee-claim/answer', "Javobni yuborib bo'lmadi", { fix: !!fix });
+/** "Tuzatdim": mijozga tekshirish uchun yuboriladi. */
+export const reportGuaranteeFixed = (orderId) =>
+  orderAction(orderId, 'guarantee-claim/fixed', "Yuborib bo'lmadi");
+/** Tugagan buyurtma uchun yakuniy izoh (bir marta, ≤1000 belgi). */
+export const sendFinalComment = (orderId, comment) =>
+  orderAction(orderId, 'final-comment', "Izohni saqlab bo'lmadi", { comment: comment.trim() });
 export const cancelByWorker = (orderId, payload) =>
   orderAction(orderId, 'cancel-by-worker', "Bekor qilib bo'lmadi", payload);
 

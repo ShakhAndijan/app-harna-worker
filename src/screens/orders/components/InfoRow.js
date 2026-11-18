@@ -14,7 +14,12 @@ export default function InfoRow({ icon, label, value, t, right }) {
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6 },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
   left: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   label: { fontSize: 12.5, fontWeight: '600' },
   value: { fontSize: 12.5, fontWeight: '700' },

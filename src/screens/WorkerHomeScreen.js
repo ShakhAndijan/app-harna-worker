@@ -311,7 +311,11 @@ export default function WorkerHomeScreen() {
           {!!worker && !locked && <ScheduleCard worker={worker} t={t} tr={tr} router={router} />}
 
           {/* ── Haftalik natijalar ── */}
-          {!!stats.data && <ResultsCard stats={stats.data} t={t} tr={tr} />}
+          {!!stats.data && (
+            <TouchableOpacity activeOpacity={0.85} onPress={() => router.push('/stats')}>
+              <ResultsCard stats={stats.data} t={t} tr={tr} />
+            </TouchableOpacity>
+          )}
 
           {/* ── Oylik tanlov ── */}
           {!!contest.data?.enabled && <ContestCard c={contest.data} t={t} tr={tr} />}

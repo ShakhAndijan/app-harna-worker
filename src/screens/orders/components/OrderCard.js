@@ -11,8 +11,7 @@ import { formatOrderDate } from '../utils';
 export default function OrderCard({ order, onPress, t }) {
   const { t: tr } = useLanguage();
   const cfg = STATUS_META[order.status] || STATUS_META.active;
-  const title =
-    order.task || order.service || tr('orderDetail.orderNumber', { id: order.id });
+  const title = order.task || order.service || tr('orderDetail.orderNumber', { id: order.id });
   const subtitle = [order.master || tr('orders.noMasterYet'), order.service]
     .filter(Boolean)
     .join(' · ');
@@ -77,7 +76,14 @@ export default function OrderCard({ order, onPress, t }) {
 }
 
 const s = StyleSheet.create({
-  card: { position: 'relative', borderRadius: 18, padding: 14, paddingLeft: 18, borderWidth: 1, overflow: 'hidden' },
+  card: {
+    position: 'relative',
+    borderRadius: 18,
+    padding: 14,
+    paddingLeft: 18,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
   accentBar: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
 
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

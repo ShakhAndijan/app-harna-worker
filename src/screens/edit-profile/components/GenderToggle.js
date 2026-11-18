@@ -34,7 +34,11 @@ export default function GenderToggle({ genders, selectedId, onSelect, loading })
                 activeOpacity={0.8}
                 onPress={() => onSelect(g.id)}
               >
-                <MaterialCommunityIcons name={iconFor(g.code)} size={17} color={on ? '#fff' : t.muted} />
+                <MaterialCommunityIcons
+                  name={iconFor(g.code)}
+                  size={17}
+                  color={on ? '#fff' : t.muted}
+                />
                 <Text style={[s.genderBtnText, { color: on ? '#fff' : t.text }]}>{g.name}</Text>
               </TouchableOpacity>
             );

@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../context/ThemeContext';
+import * as Location from 'expo-location';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { appAlert, appConfirm } from '../../components/AppAlert';
@@ -401,6 +402,27 @@ export function LocationScreen() {
   return <LocationForm w={me.data} regions={regions.data || []} />;
 }
 
+const LOC_TEXTS = {
+  uz: {
+    here: 'Joriy joylashuvim',
+    clear: "Nuqtani o'chirish",
+    denied: 'Joylashuvga ruxsat berilmadi',
+    failed: 'Joylashuvni aniqlab bo‘lmadi',
+  },
+  ru: {
+    here: 'Моё местоположение',
+    clear: 'Удалить точку',
+    denied: 'Нет доступа к геолокации',
+    failed: 'Не удалось определить местоположение',
+  },
+  en: {
+    here: 'My current location',
+    clear: 'Remove point',
+    denied: 'Location permission denied',
+    failed: 'Could not get your location',
+  },
+};
+
 function LocationForm({ w, regions }) {
   const router = useRouter();
   const { theme } = useTheme();
@@ -443,6 +465,35 @@ function LocationForm({ w, regions }) {
     };
   }, [point.lat, point.lng]);
 
+  // Qurilmaning joriy joylashuvini nuqta qilib olish (ruxsat so'raladi).
+  const { language } = useLanguage();
+  const locX = LOC_TEXTS[language] ?? LOC_TEXTS.uz;
+  const [locating, setLocating] = useState(false);
+  const [cleared, setCleared] = useState(false);
+  const goHere = async () => {
+    setLocating(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        appAlert(locX.denied);
+        return;
+      }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      setAddr(null);
+      setCleared(false);
+      setPoint({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    } catch {
+      appAlert(locX.failed);
+    } finally {
+      setLocating(false);
+    }
+  };
+  const clearPoint = () => {
+    setPoint({ lat: null, lng: null });
+    setAddr(null);
+    setCleared(true);
+  };
+
   const toggleDistrict = (id) =>
     setPicked(() => {
       const n = new Set(pickedSet);
@@ -460,6 +511,9 @@ function LocationForm({ w, regions }) {
       if (point.lat != null && point.lng != null) {
         body.latitude = point.lat;
         body.longitude = point.lng;
+      } else if (cleared) {
+        body.latitude = null;
+        body.longitude = null;
       }
       return api.patchMe(body);
     },
@@ -614,6 +668,51 @@ function LocationForm({ w, regions }) {
           </View>
         </LinearGradient>
       </TouchableOpacity>
+
+      {/* Nuqta bilan tezkor amallar: joriy joylashuvdan olish va nuqtani o'chirish */}
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        {[
+          ['locate', locX.here, goHere, locating],
+          ...(point.lat != null && point.lng != null
+            ? [['trash-outline', locX.clear, clearPoint, false, true]]
+            : []),
+        ].map(([icon, label, onPress, busy, danger]) => (
+          <TouchableOpacity
+            key={label}
+            onPress={onPress}
+            disabled={busy}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              paddingVertical: 12,
+              paddingHorizontal: 8,
+              borderRadius: 16,
+              backgroundColor: theme.card,
+              borderWidth: 1,
+              borderColor: theme.border,
+              opacity: busy ? 0.6 : 1,
+            }}
+          >
+            <Ionicons name={icon} size={17} color={danger ? theme.red : theme.orange} />
+            <Text
+              numberOfLines={1}
+              style={{
+                color: danger ? theme.red : theme.text,
+                fontSize: 13,
+                fontWeight: '800',
+                flexShrink: 1,
+              }}
+            >
+              {busy ? '…' : label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Rejim tanlash: tabletka ko'rinishidagi ikki bo'lakli almashtirgich */}
       <View
@@ -1020,6 +1119,24 @@ function Group({ title, children, danger }) {
   );
 }
 
+const VERIFY_TEXTS = {
+  uz: {
+    title: 'Profilni tasdiqlash',
+    done: 'Shaxsingiz tasdiqlangan',
+    todo: 'Pasport orqali shaxsni tasdiqlang — mijozlar ishonchi oshadi',
+  },
+  ru: {
+    title: 'Подтверждение профиля',
+    done: 'Личность подтверждена',
+    todo: 'Подтвердите личность по паспорту — доверие клиентов выше',
+  },
+  en: {
+    title: 'Verify profile',
+    done: 'Identity verified',
+    todo: 'Verify your identity with a passport to earn more trust',
+  },
+};
+
 export function SettingsScreen() {
   const router = useRouter();
   const qc = useQueryClient();
@@ -1166,6 +1283,24 @@ export function SettingsScreen() {
             }
           />
         ) : null}
+        <Row
+          icon="shield-checkmark"
+          color="#2eb872"
+          label={VERIFY_TEXTS[language]?.title ?? VERIFY_TEXTS.uz.title}
+          sub={
+            me.data?.is_identity_verified
+              ? (VERIFY_TEXTS[language]?.done ?? VERIFY_TEXTS.uz.done)
+              : (VERIFY_TEXTS[language]?.todo ?? VERIFY_TEXTS.uz.todo)
+          }
+          onPress={
+            me.data?.is_identity_verified ? undefined : () => router.push('/verify-identity')
+          }
+          right={
+            me.data?.is_identity_verified ? (
+              <Ionicons name="checkmark-circle" size={22} color="#2eb872" />
+            ) : undefined
+          }
+        />
         <Row
           icon="lock-closed"
           color="#e87a45"

@@ -41,8 +41,16 @@ export default function PriceSection({ details, mock, showSplit }) {
         <View style={[styles.divider, { backgroundColor: t.border }]} />
         {showSplit && (
           <>
-            <Row icon="package" label={tr('workDetail.materials')} value={`${formatPrice(details.priceMaterial)} ${som}`} />
-            <Row icon="tool" label={tr('workDetail.laborCost')} value={`${formatPrice(details.priceLabor)} ${som}`} />
+            <Row
+              icon="package"
+              label={tr('workDetail.materials')}
+              value={`${formatPrice(details.priceMaterial)} ${som}`}
+            />
+            <Row
+              icon="tool"
+              label={tr('workDetail.laborCost')}
+              value={`${formatPrice(details.priceLabor)} ${som}`}
+            />
           </>
         )}
         <Row icon="clock" label={tr('workDetail.duration')} value={details.duration} />

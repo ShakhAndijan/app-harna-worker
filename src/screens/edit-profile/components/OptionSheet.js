@@ -6,7 +6,15 @@ import { s } from '../styles';
 import BottomSheet from './BottomSheet';
 
 // Bitta variantni tanlash oynasi (viloyat / tuman).
-export default function OptionSheet({ visible, onClose, title, options, selectedId, onSelect, loading }) {
+export default function OptionSheet({
+  visible,
+  onClose,
+  title,
+  options,
+  selectedId,
+  onSelect,
+  loading,
+}) {
   const { theme: t } = useTheme();
   const { t: tr } = useLanguage();
 
@@ -22,7 +30,9 @@ export default function OptionSheet({ visible, onClose, title, options, selected
           keyExtractor={(item) => String(item.id)}
           style={{ maxHeight: 380 }}
           contentContainerStyle={{ paddingBottom: 12 }}
-          ItemSeparatorComponent={() => <View style={[s.sheetDivider, { backgroundColor: t.border }]} />}
+          ItemSeparatorComponent={() => (
+            <View style={[s.sheetDivider, { backgroundColor: t.border }]} />
+          )}
           renderItem={({ item }) => {
             const on = item.id === selectedId;
             return (

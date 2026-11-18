@@ -20,7 +20,7 @@ export const formatDisplayDate = (iso) => {
 };
 
 // Backend jins/viloyat/tuman'ni obyekt ({id, name}) yoki oddiy id ko'rinishida qaytarishi mumkin.
-const idOf = (v) => (v && typeof v === 'object' ? v.id ?? null : v ?? null);
+const idOf = (v) => (v && typeof v === 'object' ? (v.id ?? null) : (v ?? null));
 
 export const EMPTY_PROFILE = {
   firstName: '',

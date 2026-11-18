@@ -15,6 +15,8 @@ import StatusBanner from './requests/components/StatusBanner';
 import ContactsCard from './orders/components/ContactsCard';
 import DescriptionCard from './orders/components/DescriptionCard';
 import PromptModal from './requests/components/PromptModal';
+import CustomerOrderExtras from './customer-order/CustomerOrderExtras';
+import { CompleteModal } from './customer-order/ReviewBlocks';
 import SendToModal from './requests/components/SendToModal';
 import OfferModal from './requests/components/OfferModal';
 import RepostModal from './requests/components/RepostModal';
@@ -134,6 +136,8 @@ export default function RequestScreen({ orderId, onBack }) {
             <Text style={[s.noteTxt, { color: t.text }]}>{note}</Text>
           </View>
         )}
+
+        <CustomerOrderExtras order={order} onChanged={refresh} />
 
         <View style={[s.card, { backgroundColor: t.card, borderColor: t.border }]}>
           <SummaryRow
@@ -422,15 +426,9 @@ export default function RequestScreen({ orderId, onBack }) {
           }
         }}
       />
-      <PromptModal
+      <CompleteModal
         visible={completeOpen}
-        title={tr('orderFlow.stage.completeTitle')}
-        hint={`${tr('orderFlow.stage.completeHint')} ${tr('orderFlow.final.once')}`}
-        placeholder={tr('orderFlow.final.placeholder')}
-        confirmLabel={tr('orderFlow.stage.completeOk')}
-        multiline
-        optional
-        maxLength={1000}
+        order={order}
         busy={actions.busy}
         onClose={() => setCompleteOpen(false)}
         onSubmit={async (comment) => {

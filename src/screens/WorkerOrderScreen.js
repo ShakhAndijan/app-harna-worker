@@ -32,6 +32,19 @@ import {
   useWorkDone,
 } from '../queries/workerOrders';
 import { money, timingLabel, orderPrice } from './worker/shared';
+import OrderStages from './worker/OrderStages';
+import RateCustomer from './worker/RateCustomer';
+import GuaranteeClaim from './worker/GuaranteeClaim';
+import FinalComments from './worker/FinalComments';
+import OrderHistory, { orderEvents } from './worker/OrderHistory';
+import OrderExtras, { extrasTotalLine } from './worker/OrderExtras';
+import {
+  BeforePhotos,
+  FieldActions,
+  WorkDoneForm,
+  NoShowAnswer,
+  ComplaintStatus,
+} from './worker/OrderFieldActions';
 
 function Card({ children, style, t }) {
   return (
@@ -64,13 +77,155 @@ function Btn({ label, onPress, kind = 'primary', icon, disabled, busy, t }) {
 
 const labelStyle = (t) => ({ color: t.muted, fontSize: 12, fontWeight: '700', letterSpacing: 0.5 });
 
+const todayTashkent = () => new Date(Date.now() + 5 * 3600 * 1000).toISOString().slice(0, 10);
+
+const MONTHS = {
+  uz: [
+    'yanvar',
+    'fevral',
+    'mart',
+    'aprel',
+    'may',
+    'iyun',
+    'iyul',
+    'avgust',
+    'sentabr',
+    'oktabr',
+    'noyabr',
+    'dekabr',
+  ],
+  ru: [
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
+  ],
+  en: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+};
+const dayLabel = (language, iso) => {
+  const [, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+  const name = (MONTHS[language] ?? MONTHS.uz)[(m || 1) - 1];
+  if (language === 'en') return `${name} ${d}`;
+  return language === 'ru' ? `${d} ${name}` : `${d}-${name}`;
+};
+const workDueNote = (language, iso) => {
+  const day = dayLabel(language, iso);
+  if (language === 'ru')
+    return `День работы — ${day}. «Работа выполнена» можно нажать с этого дня.`;
+  if (language === 'en') return `Work day is ${day}. You can press “Work done” from that day.`;
+  return `Ish kuni — ${day}. «Ish bajarildi» shu kundan boshlab bosiladi.`;
+};
+const workDoneWaiting = (language, until) => {
+  const d = until ? new Date(until) : null;
+  const p = (n) => String(n).padStart(2, '0');
+  const when =
+    d && !Number.isNaN(d.getTime())
+      ? `${p(d.getDate())}.${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`
+      : null;
+  if (language === 'ru')
+    return when
+      ? `Ждём подтверждения клиента. Если до ${when} он не подтвердит, заказ завершится автоматически.`
+      : 'Ждём подтверждения клиента';
+  if (language === 'en')
+    return when
+      ? `Waiting for customer confirmation. If they do not confirm by ${when}, the order completes automatically.`
+      : 'Waiting for customer confirmation';
+  return when
+    ? `Mijoz tasdig‘i kutilmoqda. Mijoz ${when} gacha tasdiqlamasa, buyurtma o‘z-o‘zidan yakunlanadi.`
+    : 'Mijoz tasdig‘i kutilmoqda';
+};
+
+const pad2 = (n) => String(n).padStart(2, '0');
+// Sayt bilan bir xil: 08:00–20:00 soatlik slotlar; ish kuni bugun bo'lsa, tugab bo'lganlari yashiriladi.
+// Mijoz bir necha kun ko'rsatgan bo'lsa (pick_from ≠ pick_until), usta shundan birini tanlaydi.
+const pickSpan = (order) => {
+  const from = String(order.pick_from ?? '').slice(0, 10);
+  const until = String(order.pick_until ?? '').slice(0, 10);
+  return from && until && from !== until ? { from, until } : null;
+};
+const spanDays = ({ from, until }) => {
+  const out = [];
+  const end = Date.parse(`${until}T00:00:00Z`);
+  for (let d = Date.parse(`${from}T00:00:00Z`); d <= end && out.length < 31; d += 86400000) {
+    out.push(new Date(d).toISOString().slice(0, 10));
+  }
+  return out;
+};
+// `day` bo'sh bo'lsa (kun hali tanlanmagan) — barcha slotlar ko'rsatiladi.
+const offerSlots = (order, day) => {
+  const mins = Number(order.window_minutes) || 60;
+  const now = Date.now();
+  const out = [];
+  for (let h = 8; h <= 20; h++) {
+    const start = day ? Date.parse(`${day}T${pad2(h)}:00:00+05:00`) : null;
+    if (start != null && now >= start + mins * 60000) continue;
+    const endMin = h * 60 + mins;
+    out.push({
+      value: `${pad2(h)}:00`,
+      label: `${pad2(h)}:00–${pad2(Math.floor(endMin / 60) % 24)}:${pad2(endMin % 60)}`,
+    });
+  }
+  return out;
+};
+const slotTexts = (language) =>
+  language === 'ru'
+    ? {
+        title: 'Время прихода',
+        any: 'Не важно',
+        day: 'Дата работы',
+        dayHint:
+          'Выберите один из дней, которые указал заказчик — если выберет вас, работа будет назначена на этот день.',
+      }
+    : language === 'en'
+      ? {
+          title: 'Arrival time',
+          any: 'Any time',
+          day: 'Work date',
+          dayHint:
+            'Pick one of the days the customer offered — if chosen, the job is set for that day.',
+        }
+      : {
+          title: 'Kelish vaqti',
+          any: 'Muhim emas',
+          day: 'Ish sanasi',
+          dayHint: "Mijoz so'ragan kunlardan birini tanlang — tanlasa, ish shu kunga belgilanadi.",
+        };
+
+const arrivalPh = (language) =>
+  language === 'ru'
+    ? 'Когда сможете прийти? Например: сегодня после 18:00'
+    : language === 'en'
+      ? 'When can you come? e.g. today after 18:00'
+      : 'Qachon kela olasiz? Masalan: bugun 18:00 dan keyin';
+
 const REASONS = ['price_low', 'too_far', 'busy', 'not_my_trade'];
 const digits = (v) => String(v ?? '').replace(/\D/g, '');
 
 // Buyurtma tafsiloti: ma'lumotlar, taklif yuborish, "Qiziq emas", kelishuv va ishni yakunlash.
 export default function WorkerOrderScreen({ id }) {
   const { theme: t } = useTheme();
-  const { t: tr } = useLanguage();
+  const { t: tr, language } = useLanguage();
   const router = useRouter();
   const goBack = useGoBack();
   const { refreshControl } = usePullRefresh();
@@ -89,6 +244,9 @@ export default function WorkerOrderScreen({ id }) {
   const [mode, setMode] = useState(null); // 'offer' | 'skip' | 'reprice'
   const [price, setPrice] = useState('');
   const [comment, setComment] = useState('');
+  const [arrival, setArrival] = useState('');
+  const [windowStart, setWindowStart] = useState(null);
+  const [pickDay, setPickDay] = useState(null);
   const [error, setError] = useState('');
 
   const fail = (e) => {
@@ -120,6 +278,8 @@ export default function WorkerOrderScreen({ id }) {
   const startOffer = (kind) => {
     setPrice(digits(kind === 'reprice' ? order.my_offer?.price : order.budget));
     setError('');
+    setWindowStart(null);
+    setPickDay(null);
     setMode(kind);
   };
 
@@ -158,6 +318,12 @@ export default function WorkerOrderScreen({ id }) {
     );
   }
 
+  // "Ish bajarildi" faqat ish kunidan boshlab (Toshkent vaqti); sana belgilanmagan bo'lsa — doim.
+  const workDue = !order.scheduled_date || order.scheduled_date.slice(0, 10) <= todayTashkent();
+  const span = pickSpan(order);
+  const slotDay = span
+    ? pickDay
+    : String(order.scheduled_date ?? order.pick_from ?? '').slice(0, 10) || todayTashkent();
   const priceText = money(orderPrice(order));
   const mine = order.my_offer;
   const isOpen = order.status === 'pending' && !order.worker_id;
@@ -230,6 +396,11 @@ export default function WorkerOrderScreen({ id }) {
           <Text style={{ color: t.orange, fontSize: 24, fontWeight: '800', marginTop: 10 }}>
             {priceText ? `${priceText} ${tr('workerHome.som')}` : tr('workerHome.noPrice')}
           </Text>
+          {!!extrasTotalLine(order, language) && (
+            <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>
+              {extrasTotalLine(order, language)}
+            </Text>
+          )}
           {order.price_mode === 'hourly' && !!order.hourly_rate && (
             <Text style={{ color: t.muted, fontSize: 12.5, marginTop: 2 }}>
               {tr('workerOrders.hourly')}: {money(order.hourly_rate)} {tr('workerHome.som')}
@@ -290,6 +461,43 @@ export default function WorkerOrderScreen({ id }) {
           </Card>
         )}
 
+        {/* Qo'shimcha ishlar: faqat jarayondagi buyurtmada taklif qilinadi */}
+        {(inProgress || order.status === 'completed') && (
+          <Card t={t}>
+            <OrderExtras
+              order={order}
+              canPropose={inProgress && order.status === 'active' && !order.worker_done_at}
+            />
+          </Card>
+        )}
+
+        {/* Bosqichlar (etaplar): kelishuvdan keyin */}
+        {(inProgress || order.status === 'completed') && (
+          <Card t={t}>
+            <OrderStages orderId={order.id} editable={inProgress} />
+          </Card>
+        )}
+
+        {/* Tugagan buyurtma: mijozni baholash */}
+        {!!order.guarantee_claim && <GuaranteeClaim order={order} />}
+        {order.status === 'completed' && (
+          <Card t={t}>
+            <RateCustomer order={order} />
+          </Card>
+        )}
+        {order.status === 'completed' && (
+          <Card t={t}>
+            <FinalComments order={order} />
+          </Card>
+        )}
+
+        {/* Tarix: buyurtma bosqichlari xronologiyasi */}
+        {!isOpen && orderEvents(order).length > 0 && (
+          <Card t={t}>
+            <OrderHistory order={order} />
+          </Card>
+        )}
+
         {/* Mening taklifim */}
         {!!mine && (
           <Card t={t}>
@@ -331,6 +539,104 @@ export default function WorkerOrderScreen({ id }) {
               />
               <Text style={{ color: t.muted, fontWeight: '700' }}>{tr('workerHome.som')}</Text>
             </View>
+            {open === 'offer' && (
+              <View style={{ marginTop: 14 }}>
+                {!!span && (
+                  <View style={{ marginBottom: 14 }}>
+                    <Text style={labelStyle(t)}>{slotTexts(language).day.toUpperCase()}</Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                      {spanDays(span).map((d) => {
+                        const on = pickDay === d;
+                        return (
+                          <TouchableOpacity
+                            key={d}
+                            activeOpacity={0.8}
+                            onPress={() => {
+                              setPickDay(d);
+                              setWindowStart(null);
+                            }}
+                            style={{
+                              paddingHorizontal: 12,
+                              paddingVertical: 8,
+                              borderRadius: 999,
+                              borderWidth: 1,
+                              backgroundColor: on ? t.orange : t.card2,
+                              borderColor: on ? t.orange : t.border,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                color: on ? '#fff' : t.text,
+                                fontSize: 13,
+                                fontWeight: '700',
+                              }}
+                            >
+                              {dayLabel(language, d)}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <Text style={{ color: t.muted, fontSize: 12, lineHeight: 17, marginTop: 6 }}>
+                      {slotTexts(language).dayHint}
+                    </Text>
+                  </View>
+                )}
+                <Text style={labelStyle(t)}>{slotTexts(language).title.toUpperCase()}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                  {[
+                    { value: null, label: slotTexts(language).any },
+                    ...offerSlots(order, slotDay),
+                  ].map((o) => {
+                    const on = windowStart === o.value;
+                    return (
+                      <TouchableOpacity
+                        key={String(o.value)}
+                        activeOpacity={0.8}
+                        onPress={() => setWindowStart(o.value)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 8,
+                          borderRadius: 999,
+                          borderWidth: 1,
+                          backgroundColor: on ? t.orange : t.card2,
+                          borderColor: on ? t.orange : t.border,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: on ? '#fff' : t.text,
+                            fontSize: 13,
+                            fontWeight: '700',
+                          }}
+                        >
+                          {o.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+            {open === 'offer' && (
+              <TextInput
+                value={arrival}
+                onChangeText={setArrival}
+                placeholder={arrivalPh(language)}
+                placeholderTextColor={t.faint}
+                maxLength={120}
+                style={[
+                  s.input,
+                  {
+                    backgroundColor: t.card2,
+                    borderColor: t.border,
+                    color: t.text,
+                    fontSize: 14,
+                    paddingVertical: 12,
+                  },
+                ]}
+              />
+            )}
             {open === 'offer' && (
               <TextInput
                 value={comment}
@@ -422,12 +728,19 @@ export default function WorkerOrderScreen({ id }) {
                 busy={busy}
                 t={t}
                 icon="paper-plane"
-                disabled={!price}
+                disabled={!price || (!!span && !pickDay)}
                 label={sendOffer.isPending ? tr('workerOrders.sending') : tr('workerOrders.send')}
                 onPress={() =>
                   run(sendOffer, {
                     id: order.id,
-                    payload: { price, comment: comment.trim() || null, as_brigade: false },
+                    payload: {
+                      price,
+                      scheduled_date: span ? pickDay : null,
+                      ...(windowStart ? { window_start: windowStart } : {}),
+                      arrival: arrival.trim() || null,
+                      comment: comment.trim() || null,
+                      as_brigade: false,
+                    },
                   })
                 }
               />
@@ -547,15 +860,31 @@ export default function WorkerOrderScreen({ id }) {
                   }
                 />
               )}
+              <ComplaintStatus order={order} />
+              <NoShowAnswer order={order} />
+              {!order.worker_done_at && <BeforePhotos order={order} />}
+              {!order.worker_done_at && <FieldActions order={order} />}
               {!order.worker_done_at && (
-                <Btn
-                  busy={busy}
-                  t={t}
-                  kind="ghost"
-                  icon="checkmark-done"
-                  label={tr('workerOrders.workDone')}
-                  onPress={() => run(done, order.id)}
-                />
+                <>
+                  <WorkDoneForm order={order} disabled={!workDue || busy} />
+                  {!workDue && (
+                    <Text
+                      style={{
+                        color: t.muted,
+                        fontSize: 12.5,
+                        lineHeight: 18,
+                        textAlign: 'center',
+                      }}
+                    >
+                      {workDueNote(language, order.scheduled_date)}
+                    </Text>
+                  )}
+                </>
+              )}
+              {!!order.worker_done_at && (
+                <Text style={{ color: t.muted, fontSize: 12.5, textAlign: 'center' }}>
+                  {workDoneWaiting(language, order.complete_until)}
+                </Text>
               )}
             </>
           )}

@@ -23,7 +23,7 @@ export default function useOrderFilters(orders) {
   }, [orders]);
 
   const list = useMemo(
-    () => (tab === 'all' ? orders ?? [] : (orders ?? []).filter((o) => o.status === tab)),
+    () => (tab === 'all' ? (orders ?? []) : (orders ?? []).filter((o) => o.status === tab)),
     [orders, tab]
   );
 

@@ -70,7 +70,9 @@ export function CustomerReviewSection({ review, mock }) {
             </Text>
             <View style={styles.ratingBadge}>
               <Ionicons name="star" size={11} color={t.gold} />
-              <Text style={[styles.ratingText, { color: t.gold }]}>{Number(review.rating).toFixed(1)}</Text>
+              <Text style={[styles.ratingText, { color: t.gold }]}>
+                {Number(review.rating).toFixed(1)}
+              </Text>
             </View>
           </View>
         }

@@ -4,8 +4,22 @@
 // qiymatlar hosil qilamiz. Ekranda ular faqat backenddan kelmagan maydonlar o'rniga ishlatiladi
 // va "Namuna ma'lumot" belgisi bilan ko'rsatiladi. Matnlar hozircha faqat o'zbekcha.
 
-const CATEGORY_TAGS = ['Santexnika', 'Elektrik', 'Duradgorlik', "Bo'yash", 'Tozalash', 'Konditsioner'];
-const LOCATIONS = ['Chilonzor', 'Yunusobod', "Mirzo Ulug'bek", 'Sergeli', 'Yakkasaroy', 'Shayxontohur'];
+const CATEGORY_TAGS = [
+  'Santexnika',
+  'Elektrik',
+  'Duradgorlik',
+  "Bo'yash",
+  'Tozalash',
+  'Konditsioner',
+];
+const LOCATIONS = [
+  'Chilonzor',
+  'Yunusobod',
+  "Mirzo Ulug'bek",
+  'Sergeli',
+  'Yakkasaroy',
+  'Shayxontohur',
+];
 const DURATIONS = ['2 soat', '3 soat', '4 soat', '1 kun', '2 kun'];
 const POSTED_AGO = [
   '2 kun oldin',
