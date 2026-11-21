@@ -2,7 +2,7 @@
   "expo": {
     "name": "harna.usta.uz",
     "slug": "mobile-app-afish",
-    "scheme": "mobile-app-afish",
+    "scheme": "harna-worker",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,13 +10,13 @@
     "backgroundColor": "#0c1828",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "uz.harna.customer",
+      "bundleIdentifier": "uz.harna.usta",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "uz.harna.customer",
+      "package": "uz.harna.usta",
       "versionCode": 3,
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
