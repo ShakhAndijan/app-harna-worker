@@ -98,7 +98,7 @@ const cleanDesc = (d) => (d && !TOPUP_LINE.test(d) ? d : '');
 const ACCOUNT_SYSTEMS = ['paynet', 'uzumbank'];
 
 // Hisob raqami kartasi: raqam katta, nusxalash tugmasi va 3 qadam (sayt TopupAccountCard bilan bir xil).
-function AccountCard({ number, systems, x, theme }) {
+function AccountCard({ number, systems, x, theme, range }) {
   const names = systems.map((p) => (p === 'uzumbank' ? 'Uzum Bank' : 'Paynet')).join(` ${x.or} `);
   const steps = [
     systems.includes('paynet') ? `${x.stepApp(names)} ${x.stepTerminal}` : x.stepApp(names),
@@ -170,7 +170,9 @@ function AccountCard({ number, systems, x, theme }) {
           <Text style={{ flex: 1, color: theme.text, fontSize: 14, lineHeight: 20 }}>{step}</Text>
         </View>
       ))}
-      <Muted style={{ fontSize: 12, lineHeight: 17 }}>{x.accNote}</Muted>
+      <Muted style={{ fontSize: 12, lineHeight: 17 }}>
+        {range}. {x.accNote}
+      </Muted>
     </View>
   );
 }
@@ -180,6 +182,7 @@ const BAL_TEXTS = {
     choose: "To'lov usulini tanlang",
     all: 'Hammasi',
     soon: 'Tez orada',
+    repeat: (p, d) => `Avval ishlagan mijozlaringizdan bog‘lanish haqi ${p}% kam (${d} kun ichida)`,
     scan: 'Kartani skanerlash',
     scanFail:
       "Karta raqami topilmadi. Kartani tekis, yorug' joyda va raqamlari aniq ko'rinadigan qilib suratga oling yoki raqamni qo'lda yozing.",
@@ -197,7 +200,9 @@ const BAL_TEXTS = {
       "To'langan pul hamyonga tushadi va faqat platforma xizmatlari uchun sarflanadi, yechib bo'lmaydi.",
     over: "Mablag' yetarli emas",
     after: 'Yangi balans',
-    min: "Kamida 1 000 so'm",
+    min: (m) => `Kamida ${m}`,
+    max: (m) => `Bitta to'lov ${m} dan oshmasligi kerak`,
+    range: (a, b) => (b ? `Bitta to'lov: ${a} dan ${b} gacha` : `Bitta to'lov: kamida ${a}`),
     withdrawable: 'Yechib olish mumkin',
     withdrawableHint: "Mijozlar ish uchun onlayn to'lagan pul",
     services: 'Faqat xizmatlar uchun',
@@ -209,6 +214,8 @@ const BAL_TEXTS = {
     choose: 'Выберите способ оплаты',
     all: 'Всё',
     soon: 'Скоро',
+    repeat: (p, d) =>
+      `С заказчиками, с которыми вы уже работали, комиссия за связь на ${p}% меньше (в течение ${d} дн.)`,
     scan: 'Сканировать карту',
     scanFail:
       'Номер карты не найден. Снимите карту ровно, при хорошем свете, чтобы цифры были чёткими, или введите номер вручную.',
@@ -226,7 +233,9 @@ const BAL_TEXTS = {
       'Оплаченная сумма зачисляется в кошелёк и тратится только на услуги платформы, вывести нельзя.',
     over: 'Недостаточно средств',
     after: 'Новый баланс',
-    min: 'Минимум 1 000 сум',
+    min: (m) => `Минимум ${m}`,
+    max: (m) => `Один платёж не больше ${m}`,
+    range: (a, b) => (b ? `Один платёж: от ${a} до ${b}` : `Один платёж: от ${a}`),
     withdrawable: 'Можно вывести',
     withdrawableHint: 'Деньги, которые клиенты оплатили онлайн за работу',
     services: 'Только для услуг',
@@ -238,6 +247,8 @@ const BAL_TEXTS = {
     choose: 'Choose a payment method',
     all: 'All',
     soon: 'Soon',
+    repeat: (p, d) =>
+      `With customers you have worked for before, the match fee is ${p}% lower (within ${d} days)`,
     scan: 'Scan card',
     scanFail:
       'No card number found. Photograph the card flat, in good light, with the digits clear, or type the number.',
@@ -254,7 +265,9 @@ const BAL_TEXTS = {
       'The money lands in your wallet and pays for platform services only; it cannot be withdrawn.',
     over: 'Insufficient funds',
     after: 'New balance',
-    min: 'Minimum 1 000 UZS',
+    min: (m) => `Minimum ${m}`,
+    max: (m) => `One payment can be at most ${m}`,
+    range: (a, b) => (b ? `One payment: ${a} to ${b}` : `One payment: from ${a}`),
     withdrawable: 'Available to withdraw',
     withdrawableHint: 'Money customers paid online for your work',
     services: 'For services only',
@@ -361,7 +374,13 @@ export default function WalletScreen() {
     if (r.number) setTarget(cardSpaced(r.number));
     else appAlert(x.scan, r.error === 'denied' ? x.scanDenied : x.scanFail);
   };
-  const amountOk = num(amount.replace(/\s/g, '')) >= 1000;
+  // Bitta to'lovning chegaralari — serverdan (GET /payments/providers); kelmasa 1 000 dan.
+  const payMin = num(providers.data?.min_amount) || 1000;
+  const payMax = num(providers.data?.max_amount) || 0; // 0 — cheklov yo'q
+  const amountNum = num(amount.replace(/\s/g, ''));
+  const amountLow = amountNum > 0 && amountNum < payMin;
+  const amountHigh = payMax > 0 && amountNum > payMax;
+  const amountOk = amountNum >= payMin && !amountHigh;
   const wNum = num(wAmount.replace(/\s/g, ''));
   const wMax = num(b.withdrawable_balance ?? b.wallet_balance);
   const wOver = wNum > wMax;
@@ -470,6 +489,32 @@ export default function WalletScreen() {
           <Ionicons name="information-circle-outline" size={16} color={parts[hint].color} />
           <Muted style={{ flex: 1, fontSize: 12, lineHeight: 16 }}>{parts[hint].hint}</Muted>
         </View>
+        {/* Avvalgi mijoz uchun bog'lanish haqi arzonroq (13.11) — haq olinayotgan paytdagina aytiladi */}
+        {b.fees_enabled && num(b.repeat_fee_discount_percent) > 0 ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'flex-start',
+              gap: 8,
+              padding: 10,
+              borderRadius: 12,
+              backgroundColor: theme.green + '1a',
+            }}
+          >
+            <Ionicons name="repeat" size={16} color={theme.green} />
+            <Text
+              style={{
+                flex: 1,
+                color: theme.green,
+                fontSize: 12.5,
+                lineHeight: 17,
+                fontWeight: '600',
+              }}
+            >
+              {x.repeat(num(b.repeat_fee_discount_percent), num(b.repeat_window_days) || 365)}
+            </Text>
+          </View>
+        ) : null}
         {num(b.held_balance) > 0 || (b.fees_enabled && num(b.offer_fee) > 0) ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {num(b.held_balance) > 0 ? (
@@ -506,7 +551,8 @@ export default function WalletScreen() {
                 borderRadius: 18,
                 backgroundColor: theme.card,
                 borderWidth: 1.5,
-                borderColor: amountOk ? theme.orange : theme.border,
+                borderColor:
+                  amountLow || amountHigh ? theme.red : amountOk ? theme.orange : theme.border,
               }}
             >
               <TextInput
@@ -522,8 +568,19 @@ export default function WalletScreen() {
               </Text>
             </View>
           ) : null}
-          {!isAccount && !amountOk && amount ? (
-            <Muted style={{ marginLeft: 6 }}>{x.min}</Muted>
+          {!isAccount ? (
+            <Muted
+              style={{
+                marginLeft: 6,
+                color: amountLow || amountHigh ? theme.red : theme.muted,
+              }}
+            >
+              {amountLow
+                ? x.min(money(payMin, t))
+                : amountHigh
+                  ? x.max(money(payMax, t))
+                  : x.range(money(payMin, t), payMax > 0 ? money(payMax, t) : null)}
+            </Muted>
           ) : null}
 
           {/* To'lov usuli: brend plitkalari, bosib tanlanadi */}
@@ -558,7 +615,13 @@ export default function WalletScreen() {
           )}
 
           {isAccount ? (
-            <AccountCard number={accountNumber} systems={accountList} x={x} theme={theme} />
+            <AccountCard
+              number={accountNumber}
+              systems={accountList}
+              x={x}
+              theme={theme}
+              range={x.range(money(payMin, t), payMax > 0 ? money(payMax, t) : null)}
+            />
           ) : (
             <Btn
               label={`${t('w.wallet.pay')}${amountOk ? ` · ${money(num(amount), t)}` : ''}`}
