@@ -182,6 +182,7 @@ const uz = {
     requestWithdraw: "Yechishga so'rov",
     withdrawSent: "So'rov yuborildi",
     noTx: "Operatsiyalar yo'q",
+    receipt: 'Chek',
   },
   tx: {
     payment: "To'lov",
@@ -558,6 +559,7 @@ const ru = {
     requestWithdraw: 'Запросить вывод',
     withdrawSent: 'Запрос отправлен',
     noTx: 'Операций нет',
+    receipt: 'Чек',
   },
   tx: {
     payment: 'Платёж',
@@ -931,6 +933,7 @@ const en = {
     requestWithdraw: 'Request withdrawal',
     withdrawSent: 'Request sent',
     noTx: 'No transactions',
+    receipt: 'Receipt',
   },
   tx: {
     payment: 'Payment',

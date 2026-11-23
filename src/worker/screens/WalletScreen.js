@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +28,24 @@ import {
 } from '../ui';
 
 const PRESETS = [50000, 100000, 200000, 500000];
+
+// To'ldirish qatori: «Top-up via Click (tx=<id>)». Shu `tx` to'ldirishlar ro'yxatidagi
+// `provider_tx_id` bilan bir xil, chek havolasi shu orqali topiladi (sayt: `topupTxKey`).
+const TOPUP_LINE = /^Top-up via [A-Za-z]+ \(tx=(.+)\)$/;
+const topupTxKey = (tx) =>
+  tx.type === 'payment' ? (TOPUP_LINE.exec(tx.description ?? '')?.[1] ?? null) : null;
+const receiptHref = (url) => {
+  const link = typeof url === 'string' ? url.trim() : '';
+  return /^https?:\/\/\S+$/i.test(link) ? link : null;
+};
+// Soliq idorasi sahifasi ilova ichidagi brauzerda; ochilmasa telefonning o'z brauzerida.
+const openReceipt = async (url) => {
+  try {
+    await WebBrowser.openBrowserAsync(url);
+  } catch {
+    await Linking.openURL(url).catch(() => undefined);
+  }
+};
 
 const BAL_TEXTS = {
   uz: {
@@ -71,6 +89,13 @@ export default function WalletScreen() {
   const providers = useQuery({ queryKey: ['w', 'providers'], queryFn: api.getPaymentProviders });
   const tx = useQuery({ queryKey: ['w', 'tx'], queryFn: () => api.getTransactions(50) });
   const wd = useQuery({ queryKey: ['w', 'withdrawals'], queryFn: () => api.getWithdrawals(30) });
+  // Chek havolalari uchun: xato bo'lsa tarix shunchaki havolasiz ko'rinadi.
+  const topups = useQuery({ queryKey: ['w', 'topups'], queryFn: () => api.getTopupIntents(50) });
+  const receipts = new Map(
+    (topups.data || [])
+      .filter((i) => i.provider_tx_id && receiptHref(i.receipt_url))
+      .map((i) => [String(i.provider_tx_id), receiptHref(i.receipt_url)])
+  );
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['w'] });
   const onError = (e) => appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'w.actionFailed'));
@@ -287,6 +312,8 @@ export default function WalletScreen() {
         ) : (
           tx.data.map((x) => {
             const plus = num(x.amount) >= 0;
+            const txKey = topupTxKey(x);
+            const receipt = txKey ? receipts.get(txKey) : null;
             return (
               <Card key={x.id} style={{ gap: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -306,6 +333,17 @@ export default function WalletScreen() {
                 </View>
                 {x.description ? <Muted>{x.description}</Muted> : null}
                 {x.order_code ? <Muted>#{x.order_code}</Muted> : null}
+                {receipt ? (
+                  <TouchableOpacity
+                    onPress={() => openReceipt(receipt)}
+                    hitSlop={8}
+                    style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
+                  >
+                    <Text style={{ color: theme.orange, fontWeight: '700', fontSize: 13 }}>
+                      {t('w.wallet.receipt')} →
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
                 <Muted>{fmtDate(x.created_at, language)}</Muted>
               </Card>
             );

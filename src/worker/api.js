@@ -93,6 +93,9 @@ export const getTransactions = (limit = 40, offset = 0) =>
 export const getWithdrawals = (limit = 20, offset = 0) =>
   get('/wallet/me/withdrawals', { limit, offset });
 export const requestWithdrawal = (body) => post('/wallet/me/withdrawals', body);
+// To'ldirishlar ro'yxati (eng yangisi birinchi): fiskal chek havolasi `receipt_url` da.
+export const getTopupIntents = (limit = 50, offset = 0) =>
+  get('/wallet/topup/intents', { limit, offset });
 export const getPaymentProviders = () => get('/payments/providers');
 export const createTopupIntent = (amountUzs, provider, locale) =>
   request(u('/wallet/topup/intent'), {
