@@ -1288,8 +1288,8 @@ export const en = {
       prefix: 'I have read the ',
       privacy: 'Privacy Policy',
       mid: ' and ',
-      consent: 'give consent',
-      suffix: ' to NEKOV AZIZ LLC to process my personal data for using the Harna platform.',
+      consent: 'agree',
+      suffix: ' to the use of my personal data.',
       required: 'Please tick the consent box to continue',
     },
     gate: {

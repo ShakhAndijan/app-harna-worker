@@ -1296,11 +1296,11 @@ export const uz = {
     loadFailed: 'Hujjat yuklanmadi',
     otherLang: "Hujjatning bu tilda matni yo'q — boshqa tilda ko'rsatilmoqda.",
     check: {
-      prefix: 'Men ',
+      prefix: '',
       privacy: 'Maxfiylik siyosati',
-      mid: " bilan tanishdim va «NEKOV AZIZ» MChJ ga Harna platformasidan foydalanish uchun shaxsiy ma'lumotlarimni qayta ishlashga ",
-      consent: 'rozilik',
-      suffix: ' beraman.',
+      mid: ' bilan tanishdim va shaxsiy ma’lumotlarimdan foydalanishga ',
+      consent: 'roziman',
+      suffix: '.',
       required: 'Davom etish uchun rozilik belgisini qo‘ying',
     },
     gate: {
