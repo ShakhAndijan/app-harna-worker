@@ -14,10 +14,11 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { queryClient, persistOptions } from '../queries/client';
-import { AppAlertHost } from '../components/AppAlert';
+import { AppAlertHost, appAlert } from '../components/AppAlert';
 import BiometricLockScreen from '../screens/BiometricLockScreen';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { LanguageProvider } from '../context/LanguageContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
+import { claimPendingReferral } from '../utils/referral';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { UserProvider } from '../context/UserContext';
 import { WalletProvider } from '../context/WalletContext';
@@ -25,8 +26,12 @@ import { markStartup } from '../utils/startup';
 import usePreferencesSync from '../hooks/usePreferencesSync';
 import useRealtime from '../hooks/useRealtime';
 import ConsentGate from '../components/ConsentGate';
+import ReleaseBanner from '../components/ReleaseBanner';
 import { FEATURES } from '../constants/config';
+import { startAnalytics } from '../utils/analytics';
 import '../utils/devWarnings';
+
+startAnalytics();
 
 // Native splash birinchi ekran tayyor bo'lguncha turadi: bo'sh ekran va alohida yuklagich bosqichi yo'q.
 SplashScreen.preventAutoHideAsync();
@@ -159,6 +164,9 @@ function RootNavigator() {
                 <Stack.Screen name="index" />
                 <Stack.Screen name="login" />
               </Stack.Protected>
+              <Stack.Screen name="r/[code]" />
+              <Stack.Screen name="support-guest" />
+              <Stack.Screen name="job/[token]" />
               <Stack.Screen name="usta/[id]" />
               <Stack.Screen name="work" />
               <Stack.Screen name="listings" />
@@ -173,6 +181,8 @@ function RootNavigator() {
             <PushNotifications />
             <PreferencesSync />
             <ConsentGate />
+            <ReleaseBanner />
+            <ReferralClaim />
           </View>
         </NavigationThemeProvider>
       </WalletProvider>
@@ -190,6 +200,19 @@ function PushNotifications() {
 function PushNotificationsActive() {
   // Hook faqat push yoqilganda yuklanadi (expo-notifications importi Expo Go'da native modul talab qiladi).
   require('../hooks/usePushNotifications').default();
+  return null;
+}
+
+// Referal havolasi (`/r/KOD`) bilan kelgan usta kirgach, saqlangan kod o'zi qabul qilinadi.
+function ReferralClaim() {
+  const { signedIn } = useAuth();
+  const { t } = useLanguage();
+  useEffect(() => {
+    if (!signedIn) return;
+    claimPendingReferral().then((done) => {
+      if (done) appAlert(t('w.site.claimDone'));
+    });
+  }, [signedIn, t]);
   return null;
 }
 

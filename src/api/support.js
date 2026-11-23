@@ -78,3 +78,15 @@ export async function getFaq() {
     .filter((x) => x?.question && x?.answer)
     .map((x) => ({ id: String(x.id), q: x.question, a: x.answer }));
 }
+
+/**
+ * Mehmon (kirmagan) murojaati / taklifi: ism, aloqa va Turnstile tokeni (captcha yoqilgan bo'lsa).
+ * Anonim xabar hech bir hisobga tegishli emas — javob berilgan aloqa orqali keladi.
+ */
+export const sendGuestSupport = ({ kind, body, name, contact, captcha }) =>
+  request(ENDPOINTS.SUPPORT_MESSAGES, {
+    method: 'POST',
+    auth: false,
+    body: { kind, body, name, contact, ...(captcha ? { captcha_token: captcha } : {}) },
+    fallbackMessage: 'Murojaat yuborilmadi',
+  });

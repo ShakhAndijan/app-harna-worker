@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { forgetMyIdAttempt } from './myidPending';
 
 // Ikkala token (access + refresh) bitta SecureStore yozuvida JSON bo'lib saqlanadi.
 const SESSION_KEY = 'session_tokens';
@@ -128,6 +129,7 @@ export const saveActorType = (actorType) => AsyncStorage.setItem(ACTOR_TYPE_KEY,
 export const getActorType = () => AsyncStorage.getItem(ACTOR_TYPE_KEY);
 
 export async function clearTokens() {
+  forgetMyIdAttempt();
   cachedToken = null;
   cachedRefreshToken = null;
   await clearStoredSession();

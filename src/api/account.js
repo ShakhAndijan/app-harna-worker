@@ -1,6 +1,5 @@
 import { ENDPOINTS } from '../constants/config';
 import { request } from '../utils/request';
-import { uploadImageToPresignedUrl } from './auth';
 
 // ─── Mijoz statusi (Bronza / Kumush / Oltin) ─────────────────────
 
@@ -37,34 +36,31 @@ export const getIdentityStatus = () =>
   request(ENDPOINTS.VERIFY_STATUS, { fallbackMessage: 'Tasdiqlash holati yuklanmadi' });
 
 /**
- * Hujjat va selfie rasmlarini presigned URL orqali yuklab, administratorga tekshiruvga yuboradi.
- * @param {{ uri: string, mimeType?: string }[]} files kamida 2 ta (hujjat, selfie), ko'pi bilan 5 ta
+ * MyID WebSDK (yagona usul): tekshiruvni boshlaydi. Tana: `birth_date` (YYYY-MM-DD) va `pinfl` YOKI `pass_data`,
+ * `return_to: 'app'`, `app_id` (ilovaning o'z id si). Javob: `open_url`, `session_id`, `nonce`, `expires_in`.
  */
-export async function submitIdentityDocuments(files) {
-  const tempKeys = [];
-  for (const file of files) {
-    const contentType = file.mimeType || 'image/jpeg';
-    const { upload_url, temp_key } = await request(ENDPOINTS.VERIFY_UPLOAD_URL, {
-      method: 'POST',
-      body: { content_type: contentType },
-      fallbackMessage: 'Rasm yuklash manzili olinmadi',
-    });
-    await uploadImageToPresignedUrl(upload_url, file.uri, contentType);
-    tempKeys.push(temp_key);
-  }
-  return request(ENDPOINTS.VERIFY_SUBMIT, {
+export const startMyIdCheck = (body) =>
+  request(ENDPOINTS.MYID_START, {
     method: 'POST',
-    body: { temp_keys: tempKeys },
-    fallbackMessage: 'Hujjat yuborilmadi',
-  });
-}
-
-/** MyID orqali tezkor tasdiqlashni boshlaydi; `redirect_url` ni brauzerda ochish kerak. */
-export const startIdentityProvider = (provider = 'myid') =>
-  request(ENDPOINTS.VERIFY_START, {
-    method: 'POST',
-    body: { provider },
+    body,
     fallbackMessage: 'Tasdiqlashni boshlab bo‘lmadi',
+  });
+
+/** Yakuniy tugma: MyID qaytargan `auth_code` bilan. Server MyID javobini ~1 daqiqagacha kutadi. */
+export const completeMyIdCheck = ({ session_id, auth_code, nonce }) =>
+  request(ENDPOINTS.MYID_COMPLETE, {
+    method: 'POST',
+    body: { session_id, auth_code, nonce },
+    timeout: 90000,
+    fallbackMessage: 'Tasdiqlashni yakunlab bo‘lmadi',
+  });
+
+/** MyID kodsiz qaytardi: urinish yopiladi. */
+export const abandonMyIdCheck = ({ session_id, nonce }) =>
+  request(ENDPOINTS.MYID_ABANDON, {
+    method: 'POST',
+    body: { session_id, nonce },
+    fallbackMessage: 'Urinish yopilmadi',
   });
 
 // ─── Email tasdiqlash ────────────────────────────────────────────

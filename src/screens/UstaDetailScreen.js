@@ -1,12 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, ScrollView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { useRouter } from 'expo-router';
 import { useLanguage } from '../context/LanguageContext';
 import { UstaStyleProvider, useUstaStyles } from './usta-detail/styles';
 import useUstaDetail from './usta-detail/hooks/useUstaDetail';
+import useUstaPublic from './usta-detail/hooks/useUstaPublic';
+import AvailabilitySection from './usta-detail/components/AvailabilitySection';
 import usePullRefresh from '../hooks/usePullRefresh';
 import useLivePresence from '../hooks/useLivePresence';
+import { track } from '../utils/analytics';
 import { pickProfile, buildBadges, buildStatItems, buildSchedule } from './usta-detail/derive';
 import DetailHeader from './usta-detail/components/DetailHeader';
 import ProfileHero from './usta-detail/components/ProfileHero';
@@ -67,10 +71,37 @@ function UstaDetailContent({
     profile;
 
   const presence = useLivePresence(usta?.id ?? d?.id);
+  const router = useRouter();
+  const viewedId = usta?.id;
+  useEffect(() => {
+    if (viewedId != null) track('worker_viewed');
+  }, [viewedId]);
+  const pub = useUstaPublic(usta?.id ?? detail?.id);
 
   const categories = detail?.categories || [];
-  const portfolio = detail?.portfolio || [];
-  const reviewItems = portfolio.filter((p) => p.comment || p.rating != null);
+  // Bajarilgan ishlar va ommaviy sharhlar — serverning alohida endpointlaridan; kelmaguncha
+  // yoki bo'sh bo'lsa profildagi portfolio ishlatiladi.
+  const profilePortfolio = detail?.portfolio || [];
+  const jobs = pub.jobs.map((j) => ({
+    id: j.public_token,
+    token: j.public_token,
+    title: j.category?.name ?? '',
+    photo: j.after_photos?.[0] ?? j.before_photos?.[0] ?? null,
+    rating: j.rating ?? null,
+    workDate: j.completed_at ?? null,
+  }));
+  const portfolio = jobs.length ? jobs : profilePortfolio;
+  const publicReviews = pub.reviews.map((r, i) => ({
+    id: `${r.created_at}-${i}`,
+    title: [r.customer?.full_name, r.category?.name].filter(Boolean).join(' · '),
+    workDate: r.created_at,
+    rating: r.rating,
+    comment: r.comment,
+    photos: r.photos ?? [],
+  }));
+  const reviewItems = publicReviews.length
+    ? publicReviews
+    : profilePortfolio.filter((p) => p.comment || p.rating != null);
   const { weekDays, workHours, offDates } = buildSchedule(detail?.schedule || null);
 
   const handleOrderThisWorker = () => {
@@ -139,13 +170,18 @@ function UstaDetailContent({
           {isLoggedIn && (
             <ScheduleSection weekDays={weekDays} workHours={workHours} offDates={offDates} />
           )}
+          <AvailabilitySection availability={pub.availability} />
           <CertificatesSection certificates={certificates} loading={loadingCertificates} />
         </View>
 
         <WorksSection
           portfolio={portfolio}
-          loading={loadingDetail}
-          onSelectWork={(work) => onSelectWork?.({ ...work, worker: name })}
+          loading={loadingDetail || pub.jobsLoading}
+          onSelectWork={(work) =>
+            work.token
+              ? router.push(`/job/${encodeURIComponent(work.token)}`)
+              : onSelectWork?.({ ...work, worker: name })
+          }
         />
 
         <ListingsSection workerId={usta?.id ?? detail?.id} />
@@ -162,6 +198,8 @@ function UstaDetailContent({
             reviewItems={reviewItems}
             filter={reviewFilter}
             onFilterChange={setReviewFilter}
+            onLoadMore={publicReviews.length ? pub.reviewsMore : null}
+            loadingMore={pub.reviewsFetching}
           />
           <ComplaintsSection workerId={usta?.id ?? detail?.id} />
         </View>

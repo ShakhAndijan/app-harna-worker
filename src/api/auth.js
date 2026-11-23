@@ -201,3 +201,27 @@ export async function revokeSession() {
     // Chiqishga to'sqinlik qilmaydi.
   }
 }
+
+/** Telegram bilan kirish: bot bormi va oauth.telegram.org uchun uning id'si (GET /auth/telegram/config). */
+export async function getTelegramConfig() {
+  const data = await request(ENDPOINTS.AUTH_TELEGRAM_CONFIG, {
+    auth: false,
+    timeout: 8000,
+    fallbackMessage: 'Telegram sozlamasi yuklanmadi',
+  });
+  return {
+    enabled: !!data?.enabled,
+    botId: data?.bot_id ?? null,
+    botUsername: data?.bot_username ?? null,
+  };
+}
+
+/** Telegram oynasi qaytargan imzolangan javob o'zgartirilmasdan yuboriladi (POST /auth/telegram/verify). */
+export async function telegramVerify(data, consentVersion, actorType = 'worker') {
+  return authPost(
+    'telegramVerify',
+    ENDPOINTS.AUTH_TELEGRAM_VERIFY,
+    { data, actor_type: actorType, consent_version: consentVersion },
+    'Telegram orqali kirib bo‘lmadi'
+  );
+}

@@ -359,6 +359,24 @@ export function BrigadeScreen() {
     onError,
   });
   const leave = useMutation({ mutationFn: api.leaveBrigade, onSuccess: refresh, onError });
+  const [who, setWho] = useState('');
+  const [role, setRole] = useState('');
+  const invite = useMutation({
+    mutationFn: () => api.inviteBrigadeMember({ who: who.trim(), role: role.trim() || null }),
+    onSuccess: () => {
+      setWho('');
+      setRole('');
+      refresh();
+      appAlert(t('w.extra.inviteSent'), '');
+    },
+    onError,
+  });
+  const remove = useMutation({ mutationFn: api.removeBrigadeMember, onSuccess: refresh, onError });
+  const askRemove = (m) =>
+    appAlert(t('w.extra.removeMember'), t('w.extra.removeAsk').replace('{name}', m.name || ''), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('w.extra.removeMember'), style: 'destructive', onPress: () => remove.mutate(m.id) },
+    ]);
   const answer = useMutation({
     mutationFn: ({ id, ok }) => (ok ? api.acceptBrigadeInvite(id) : api.declineBrigadeInvite(id)),
     onSuccess: refresh,
@@ -538,13 +556,55 @@ export function BrigadeScreen() {
                           </Txt>
                           {m.role || m.status ? (
                             <Muted style={{ fontSize: 12.5 }}>
-                              {[m.role, m.status].filter(Boolean).join(' · ')}
+                              {[m.role, m.status === 'invited' ? t('w.extra.memberInvited') : null]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </Muted>
                           ) : null}
                         </View>
+                        {d.is_leader && m.worker_id !== d.brigade.leader_worker_id ? (
+                          <TouchableOpacity
+                            onPress={() => askRemove(m)}
+                            hitSlop={10}
+                            accessibilityLabel={t('w.extra.removeMember')}
+                            style={{ padding: 6 }}
+                          >
+                            <Ionicons name="close-circle-outline" size={24} color={theme.red} />
+                          </TouchableOpacity>
+                        ) : null}
                       </View>
                     );
                   })}
+                </View>
+              ) : null}
+
+              {d.is_leader ? (
+                <View
+                  style={{
+                    padding: 16,
+                    borderRadius: 24,
+                    gap: 12,
+                    backgroundColor: theme.card,
+                    borderWidth: 1,
+                    borderColor: theme.border,
+                  }}
+                >
+                  <H>{t('w.extra.inviteTitle')}</H>
+                  <Field
+                    label={t('w.extra.invitePhone')}
+                    value={who}
+                    onChangeText={setWho}
+                    keyboardType="phone-pad"
+                    placeholder="90 123 45 67"
+                  />
+                  <Field label={t('w.extra.inviteRole')} value={role} onChangeText={setRole} />
+                  <Btn
+                    icon="person-add-outline"
+                    label={t('w.extra.invite')}
+                    loading={invite.isPending}
+                    disabled={who.trim().length < 3}
+                    onPress={() => invite.mutate()}
+                  />
                 </View>
               ) : null}
 

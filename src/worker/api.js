@@ -145,6 +145,9 @@ export const buyPromotion = (body) => post('/promotions', body);
 export const getMyBrigade = () => get('/brigades/me');
 export const createBrigade = (body) => post('/brigades', body);
 export const leaveBrigade = () => post('/brigades/leave');
+// Rahbar: mutaxassisni telefon raqami bo'yicha taklif qiladi (`who`) va a'zoni chiqaradi.
+export const inviteBrigadeMember = (body) => post('/brigades/me/members', body);
+export const removeBrigadeMember = (memberId) => send('DELETE', `/brigades/me/members/${memberId}`);
 export const acceptBrigadeInvite = (memberId) => post(`/brigades/invites/${memberId}/accept`);
 export const declineBrigadeInvite = (memberId) => post(`/brigades/invites/${memberId}/decline`);
 

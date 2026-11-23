@@ -2,8 +2,16 @@
   "expo": {
     "name": "harna.usta.uz",
     "slug": "mobile-app-afish",
-    "scheme": "harna-worker",
+    "scheme": ["harna-worker", "harnaworker"],
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d45371fb-bf89-4d60-914e-6ca325c91aa3",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -23,6 +31,20 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "harna.usta.uz", "pathPrefix": "/r/" },
+            { "scheme": "https", "host": "harna.usta.uz", "pathPrefix": "/mutaxassis/" },
+            { "scheme": "https", "host": "harna.usta.uz", "pathPrefix": "/usta/" },
+            { "scheme": "https", "host": "harna.usta.uz", "pathPrefix": "/listings/" },
+            { "scheme": "https", "host": "harna.usta.uz", "pathPrefix": "/ish/" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",

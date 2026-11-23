@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, Image, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { COLORS } from '../../../constants/colors';
@@ -49,6 +50,7 @@ export default function TopWorks() {
 
 // Bitta ish: suratlar (chap/o'ng tugmalar bilan almashtiriladi), reyting, nom va usta.
 function WorkCard({ item }) {
+  const router = useRouter();
   const [photoIndex, setPhotoIndex] = useState(0);
   const total = item.photos.length;
 
@@ -56,7 +58,14 @@ function WorkCard({ item }) {
   const goNext = () => setPhotoIndex((i) => (i + 1) % total);
 
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.85}>
+    <TouchableOpacity
+      style={styles.card}
+      activeOpacity={0.85}
+      onPress={() =>
+        item.publicToken &&
+        router.push({ pathname: '/job/[token]', params: { token: item.publicToken } })
+      }
+    >
       <View style={styles.imgBox}>
         <Image source={{ uri: item.photos[photoIndex] }} style={styles.img} />
         <View style={styles.ratingBadge}>

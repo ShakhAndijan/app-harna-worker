@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { track } from '../utils/analytics';
 import AppLoader from '../components/AppLoader';
 import LiveOnlineDot from '../components/LiveOnlineDot';
 import { useTheme } from '../context/ThemeContext';
@@ -43,6 +45,11 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
   const { t: tr } = useLanguage();
   const { signedIn } = useAuth();
   const { categories } = useAllCategoriesQuery();
+
+  // Har bir e'lon — bitta ko'rish (id bo'yicha, saytdagidek).
+  useEffect(() => {
+    if (listingId != null) track('listing_viewed');
+  }, [listingId]);
 
   const detail = useListingDetail(listingId);
   const listing = detail.listing ?? initial;

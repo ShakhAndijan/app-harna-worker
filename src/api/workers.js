@@ -301,3 +301,34 @@ export async function getWorkerCertificates(workerId, categoryId) {
   devLog('[getWorkerCertificates] /workers/{id}/certificates response:', data);
   return (data ?? []).map(mapCertificate);
 }
+
+const pageOf = (data) => ({
+  items: Array.isArray(data?.items) ? data.items : [],
+  total: data?.pagination?.total ?? data?.total ?? 0,
+  pages: data?.pagination?.pages ?? data?.pages ?? 1,
+});
+
+/** Ustaning bajarilgan ishlari (GET /workers/{id}/completed-jobs): ommaviy, sahifalangan. */
+export async function getWorkerCompletedJobs(workerId, { page = 1, size = 12 } = {}) {
+  const data = await request(
+    `${ENDPOINTS.WORKERS}/${workerId}/completed-jobs?page=${page}&size=${size}`,
+    { fallbackMessage: 'Ishlar yuklanmadi' }
+  );
+  return pageOf(data);
+}
+
+/** Ustaning ommaviy sharhlari (GET /workers/{id}/reviews): mijoz ismi, kategoriya, suratlar. */
+export async function getWorkerReviews(workerId, { page = 1, size = 10 } = {}) {
+  const data = await request(`${ENDPOINTS.WORKERS}/${workerId}/reviews?page=${page}&size=${size}`, {
+    fallbackMessage: 'Sharhlar yuklanmadi',
+  });
+  return pageOf(data);
+}
+
+/** Mijoz ko'radigan band kunlar (GET /workers/{id}/availability): har kun open | full | off. */
+export async function getWorkerAvailability(workerId, days = 35) {
+  const data = await request(`${ENDPOINTS.WORKERS}/${workerId}/availability?days=${days}`, {
+    fallbackMessage: 'Band kunlar yuklanmadi',
+  });
+  return { hasSchedule: !!data?.has_schedule, days: Array.isArray(data?.days) ? data.days : [] };
+}

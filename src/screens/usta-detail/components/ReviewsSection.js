@@ -5,7 +5,13 @@ import SectionTitle from './SectionTitle';
 import ReviewCard from './ReviewCard';
 
 // Sharhlar ro'yxati ("Hammasi" / "Suratli" filtri bilan). Baholangan ish bo'lmasa — chizilmaydi.
-export default function ReviewsSection({ reviewItems, filter, onFilterChange }) {
+export default function ReviewsSection({
+  reviewItems,
+  filter,
+  onFilterChange,
+  onLoadMore,
+  loadingMore,
+}) {
   const { t: tr } = useLanguage();
   const { C, st } = useUstaStyles();
   if (reviewItems.length === 0) return null;
@@ -49,6 +55,18 @@ export default function ReviewsSection({ reviewItems, filter, onFilterChange }) 
         {shown.map((p) => (
           <ReviewCard key={p.id} item={p} />
         ))}
+        {onLoadMore && (
+          <TouchableOpacity
+            onPress={onLoadMore}
+            disabled={loadingMore}
+            style={[st.filterChip, { alignSelf: 'center', paddingHorizontal: 18 }]}
+            activeOpacity={0.75}
+          >
+            <Text style={{ fontSize: 12.5, fontWeight: '700', color: C.orange }}>
+              {loadingMore ? tr('common.loading') : tr('ustaDetail.reviewsMore')}
+            </Text>
+          </TouchableOpacity>
+        )}
         {shown.length === 0 && (
           <View style={[st.card, { padding: 16, alignItems: 'center' }]}>
             <Text style={{ fontSize: 12.5, color: C.dim }}>

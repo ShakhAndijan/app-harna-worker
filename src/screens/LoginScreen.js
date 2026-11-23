@@ -3,6 +3,7 @@ import { StyleSheet } from 'react-native';
 import { appAlert } from '../components/AppAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import { useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -11,11 +12,14 @@ import {
   startWorkerAuth,
   verifyWorkerAuth,
   completeWorkerAuth,
+  telegramVerify,
   requestResetPasswordOtp,
   verifyResetPasswordOtp,
 } from '../api/auth';
 import { acceptConsent } from '../api/legal';
 import { useConsentVersion, useLegalIndex } from '../queries/legal';
+import { useTelegramConfig } from '../queries/system';
+import TelegramLoginModal from '../components/TelegramLoginModal';
 import { saveSession, saveActorType } from '../utils/token';
 import { buildIdentifier } from '../utils/identifier';
 import PhoneStep from './steps/PhoneStep';
@@ -45,6 +49,10 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
   const [resetError, setResetError] = useState('');
   const [actorType] = useState('worker');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const router = useRouter();
+  const telegram = useTelegramConfig();
+  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [telegramOAuthLoading, setTelegramOAuthLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   // Parol qadamidan "orqaga" qayerga qaytishi: birinchi ekrandan kirilgan bo'lsa — telefon ekraniga.
@@ -237,6 +245,22 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
     }
   };
 
+  // Telegram bilan kirish (oauth.telegram.org): oyna ochiladi, qaytgan imzolangan javob serverga beriladi.
+  // Server yangi hisobni ham shu yerda ochadi (telefon va emailsiz — Telegram ularni bermaydi).
+  const handleTelegramResult = async (data) => {
+    setTelegramOpen(false);
+    try {
+      setTelegramOAuthLoading(true);
+      const out = await telegramVerify(data, consentVersion);
+      await finishLogin(out, { recordConsent: true });
+    } catch (e) {
+      if (e?.code === 'consent_outdated') legalIndex.refetch();
+      appAlert(t('common.errorTitle'), getErrorMessage(e, t, 'login.errors.loginFailed'));
+    } finally {
+      setTelegramOAuthLoading(false);
+    }
+  };
+
   const steps = {
     phone: (
       <PhoneStep
@@ -256,8 +280,12 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
         telegramLoading={otpLoading && otpChannel === 'telegram'}
         error={otpError}
         onBack={onBack}
+        onHelp={() => router.push('/support-guest')}
         onGoogle={handleGoogle}
         googleLoading={googleLoading}
+        telegramOAuth={telegram.enabled}
+        onTelegramLogin={() => setTelegramOpen(true)}
+        telegramOAuthLoading={telegramOAuthLoading}
         actorType={actorType}
         consent={consent}
         onConsentChange={setConsent}
@@ -366,6 +394,12 @@ export default function LoginScreen({ onBack, onLoginSuccess }) {
       edges={['top', 'left', 'right', 'bottom']}
     >
       {steps[step]}
+      <TelegramLoginModal
+        visible={telegramOpen}
+        botId={telegram.botId}
+        onResult={handleTelegramResult}
+        onClose={() => setTelegramOpen(false)}
+      />
     </SafeAreaView>
   );
 }

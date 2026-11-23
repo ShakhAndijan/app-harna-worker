@@ -18,6 +18,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import usePullRefresh from '../hooks/usePullRefresh';
+import { useOrderTiming } from '../queries/system';
 import useGoBack from '../navigation/useGoBack';
 import { formatNumber } from '../utils/format';
 import {
@@ -173,11 +174,11 @@ const spanDays = ({ from, until }) => {
   return out;
 };
 // `day` bo'sh bo'lsa (kun hali tanlanmagan) — barcha slotlar ko'rsatiladi.
-const offerSlots = (order, day) => {
-  const mins = Number(order.window_minutes) || 60;
+const offerSlots = (order, day, timing) => {
+  const mins = Number(order.window_minutes) || timing.arrival_window_minutes;
   const now = Date.now();
   const out = [];
-  for (let h = 8; h <= 20; h++) {
+  for (let h = timing.window_first_hour; h <= timing.window_last_hour; h++) {
     const start = day ? Date.parse(`${day}T${pad2(h)}:00:00+05:00`) : null;
     if (start != null && now >= start + mins * 60000) continue;
     const endMin = h * 60 + mins;
@@ -230,6 +231,7 @@ export default function WorkerOrderScreen({ id }) {
   const goBack = useGoBack();
   const { refreshControl } = usePullRefresh();
   const gate = useProfileGate();
+  const timing = useOrderTiming();
   const q = useOrder(id);
   const order = q.data;
 
@@ -586,7 +588,7 @@ export default function WorkerOrderScreen({ id }) {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                   {[
                     { value: null, label: slotTexts(language).any },
-                    ...offerSlots(order, slotDay),
+                    ...offerSlots(order, slotDay, timing),
                   ].map((o) => {
                     const on = windowStart === o.value;
                     return (

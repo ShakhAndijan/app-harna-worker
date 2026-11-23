@@ -10,7 +10,9 @@ import PhoneInput from '../../components/login/PhoneInput';
 import EmailInput from '../../components/login/EmailInput';
 import ConsentCheck from '../../components/login/ConsentCheck';
 import BrandLogo from '../../components/BrandLogo';
+import { useLoginMethods } from '../../queries/system';
 
+const HELP_TEXT = { uz: 'Yordam kerakmi?', ru: 'Нужна помощь?', en: 'Need help?' };
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function PhoneStep({
@@ -24,13 +26,18 @@ export default function PhoneStep({
   error,
   onGoogle,
   googleLoading,
+  telegramOAuth = false,
+  onTelegramLogin,
+  telegramOAuthLoading = false,
   onBack,
+  onHelp,
   actorType = 'customer',
   consent = false,
   onConsentChange,
   onPasswordLogin,
 }) {
   const { theme } = useTheme();
+  const methods = useLoginMethods();
   // Rozilik belgisiz kod yuborish, Telegram va Google ishlamaydi: belgi qizarib turadi.
   const [consentError, setConsentError] = useState(false);
   const guarded = (action) => () => {
@@ -40,13 +47,16 @@ export default function PhoneStep({
     }
     action();
   };
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const isDark = theme.isDark !== false;
   const isUsta = actorType === 'worker';
   const isEmail = mode === 'email';
   const isIdentifierReady = isEmail ? EMAIL_REGEX.test(identifier.trim()) : identifier.length === 9;
   // Telegram orqali kod faqat telefon raqamga yuboriladi.
-  const telegramReady = !isEmail && isIdentifierReady;
+  // oauth.telegram.org oqimi raqam so'ramaydi: bot sozlangan bo'lsa tugma doim faol; aks holda
+  // eski yo'l — Telegram orqali kod (faqat telefon raqamga).
+  const telegramReady = telegramOAuth || (!isEmail && isIdentifierReady);
+  const showTelegram = telegramOAuth || methods.telegram;
   const anyOtpLoading = loginLoading || telegramLoading;
   const isReady = isIdentifierReady && !anyOtpLoading;
   const handleCta = () => onRequestOtp('sms');
@@ -213,50 +223,72 @@ export default function PhoneStep({
           </View>
 
           {/* ── Social ── */}
-          <View style={s.orWrap}>
-            <View style={[s.line, { backgroundColor: theme.border }]} />
-            <Text style={[s.orTxt, { color: theme.muted }]}>{t('login.phoneStep.or')}</Text>
-            <View style={[s.line, { backgroundColor: theme.border }]} />
-          </View>
+          {(methods.google || showTelegram) && (
+            <>
+              <View style={s.orWrap}>
+                <View style={[s.line, { backgroundColor: theme.border }]} />
+                <Text style={[s.orTxt, { color: theme.muted }]}>{t('login.phoneStep.or')}</Text>
+                <View style={[s.line, { backgroundColor: theme.border }]} />
+              </View>
 
-          <View style={s.socialRow}>
-            <TouchableOpacity
-              style={[
-                s.socBtn,
-                { borderColor: theme.border, backgroundColor: isDark ? theme.card : '#fff' },
-              ]}
-              onPress={googleLoading ? undefined : guarded(onGoogle)}
-              activeOpacity={0.85}
-            >
-              {googleLoading ? (
-                <ActivityIndicator size="small" color="#4285F4" />
-              ) : (
-                <MaterialCommunityIcons name="google" size={20} color="#4285F4" />
-              )}
-              <Text style={[s.socTxt, { color: isDark ? theme.text : '#1f2937' }]}>Google</Text>
-            </TouchableOpacity>
+              <View style={s.socialRow}>
+                {methods.google && (
+                  <TouchableOpacity
+                    style={[
+                      s.socBtn,
+                      { borderColor: theme.border, backgroundColor: isDark ? theme.card : '#fff' },
+                    ]}
+                    onPress={googleLoading ? undefined : guarded(onGoogle)}
+                    activeOpacity={0.85}
+                  >
+                    {googleLoading ? (
+                      <ActivityIndicator size="small" color="#4285F4" />
+                    ) : (
+                      <MaterialCommunityIcons name="google" size={20} color="#4285F4" />
+                    )}
+                    <Text style={[s.socTxt, { color: isDark ? theme.text : '#1f2937' }]}>
+                      Google
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
-            <TouchableOpacity
-              style={[
-                s.socBtn,
-                { borderColor: theme.border, backgroundColor: theme.card },
-                !telegramReady && s.socBtnDisabled,
-              ]}
-              onPress={
-                anyOtpLoading || !telegramReady
-                  ? undefined
-                  : guarded(() => onRequestOtp('telegram'))
-              }
-              activeOpacity={0.85}
-            >
-              {telegramLoading ? (
-                <ActivityIndicator size="small" color="#229ED9" />
-              ) : (
-                <Ionicons name="paper-plane" size={20} color="#229ED9" />
-              )}
-              <Text style={[s.socTxt, { color: theme.text }]}>Telegram</Text>
+                {showTelegram && (
+                  <TouchableOpacity
+                    style={[
+                      s.socBtn,
+                      { borderColor: theme.border, backgroundColor: theme.card },
+                      !telegramReady && s.socBtnDisabled,
+                    ]}
+                    onPress={
+                      telegramOAuth
+                        ? telegramOAuthLoading
+                          ? undefined
+                          : guarded(onTelegramLogin)
+                        : anyOtpLoading || !telegramReady
+                          ? undefined
+                          : guarded(() => onRequestOtp('telegram'))
+                    }
+                    activeOpacity={0.85}
+                  >
+                    {telegramLoading || telegramOAuthLoading ? (
+                      <ActivityIndicator size="small" color="#229ED9" />
+                    ) : (
+                      <Ionicons name="paper-plane" size={20} color="#229ED9" />
+                    )}
+                    <Text style={[s.socTxt, { color: theme.text }]}>Telegram</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </>
+          )}
+
+          {!!onHelp && (
+            <TouchableOpacity style={s.passwordLink} onPress={onHelp} activeOpacity={0.7}>
+              <Text style={[s.passwordLinkTxt, { color: theme.muted }]}>
+                {HELP_TEXT[language] ?? HELP_TEXT.uz}
+              </Text>
             </TouchableOpacity>
-          </View>
+          )}
         </View>
       </KeyboardAwareScrollView>
     </View>

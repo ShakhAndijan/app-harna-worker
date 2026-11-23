@@ -21,6 +21,7 @@ import ReviewModal from './new-order/components/ReviewModal';
 import PhotoPreviewModal from './new-order/components/PhotoPreviewModal';
 import TargetWorkerCard from './new-order/sections/TargetWorkerCard';
 import CategorySection from './new-order/sections/CategorySection';
+import CategorySuggestion from './new-order/sections/CategorySuggestion';
 import DescriptionSection from './new-order/sections/DescriptionSection';
 import AddressSection from './new-order/sections/AddressSection';
 import WhenSection from './new-order/sections/WhenSection';
@@ -290,6 +291,12 @@ export default function NewOrderScreen({ onOrderCreated, targetWorker, onBack })
                necha kishi, talablar. */}
         <StepHeader no={1} title={tr('newOrder.step1Title')} />
         <DescriptionSection description={description} setDescription={setDescription} />
+        <CategorySuggestion
+          description={description}
+          categories={categories}
+          selectedIds={categoryIds}
+          onAdd={toggleCategory}
+        />
         <PricingSection
           pricingType={pricingType}
           setPricingType={setPricingType}
