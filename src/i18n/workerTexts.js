@@ -183,6 +183,17 @@ const uz = {
     withdrawSent: "So'rov yuborildi",
     noTx: "Operatsiyalar yo'q",
     receipt: 'Chek',
+    receiptTitle: "TO'LOV KVITANSIYASI",
+    receiptKind: "Hamyonni to'ldirish",
+    receiptProvider: "To'lov tizimi",
+    receiptDate: 'Sana',
+    receiptTx: 'Tranzaksiya',
+    receiptTotal: 'JAMI',
+    receiptOpen: 'Soliq sahifasini ochish',
+    receiptPending:
+      'Fiskal chek hali chiqarilmagan. Tayyor bo‘lgach shu yerda soliq sahifasi tugmasi paydo bo‘ladi.',
+    receiptNote:
+      "Bu to'lov kvitansiyasi. Fiskal chek (FM, fiskal belgi, QQS) soliq sahifasida ochiladi.",
   },
   tx: {
     payment: "To'lov",
@@ -197,6 +208,9 @@ const uz = {
     match_fee_refund: 'To‘lov qaytarildi',
     promotion: 'Reklama',
     subscription: 'Obuna',
+    travel_compensation: 'Yo‘l kompensatsiyasi',
+    guarantee_refund: 'Kafolat bo‘yicha qaytarish',
+    deposit_forfeit: 'Mijoz omonati',
   },
   reel: {
     play: 'Davom ettirish',
@@ -560,6 +574,17 @@ const ru = {
     withdrawSent: 'Запрос отправлен',
     noTx: 'Операций нет',
     receipt: 'Чек',
+    receiptTitle: 'КВИТАНЦИЯ ОБ ОПЛАТЕ',
+    receiptKind: 'Пополнение кошелька',
+    receiptProvider: 'Платёжная система',
+    receiptDate: 'Дата',
+    receiptTx: 'Транзакция',
+    receiptTotal: 'ИТОГО',
+    receiptOpen: 'Открыть страницу налоговой',
+    receiptPending:
+      'Фискальный чек ещё не выдан. Когда он будет готов, здесь появится кнопка страницы налоговой.',
+    receiptNote:
+      'Это квитанция об оплате. Фискальный чек (ФМ, фискальный признак, НДС) открывается на странице налоговой.',
   },
   tx: {
     payment: 'Платёж',
@@ -574,6 +599,9 @@ const ru = {
     match_fee_refund: 'Плата возвращена',
     promotion: 'Продвижение',
     subscription: 'Подписка',
+    travel_compensation: 'Компенсация за дорогу',
+    guarantee_refund: 'Возврат по гарантии',
+    deposit_forfeit: 'Залог заказчика',
   },
   reel: {
     play: 'Продолжить',
@@ -934,6 +962,17 @@ const en = {
     withdrawSent: 'Request sent',
     noTx: 'No transactions',
     receipt: 'Receipt',
+    receiptTitle: 'PAYMENT RECEIPT',
+    receiptKind: 'Wallet top-up',
+    receiptProvider: 'Payment system',
+    receiptDate: 'Date',
+    receiptTx: 'Transaction',
+    receiptTotal: 'TOTAL',
+    receiptOpen: 'Open tax office page',
+    receiptPending:
+      'The fiscal receipt has not been issued yet. A tax office page button will appear here once it is ready.',
+    receiptNote:
+      'This is a payment slip. The fiscal receipt (FM, fiscal sign, VAT) opens on the tax office page.',
   },
   tx: {
     payment: 'Payment',
@@ -948,6 +987,9 @@ const en = {
     match_fee_refund: 'Fee refunded',
     promotion: 'Promotion',
     subscription: 'Subscription',
+    travel_compensation: 'Travel compensation',
+    guarantee_refund: 'Guarantee refund',
+    deposit_forfeit: 'Customer’s deposit',
   },
   reel: {
     play: 'Resume',

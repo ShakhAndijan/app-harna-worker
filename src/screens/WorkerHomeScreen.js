@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import HarnaCard from '../worker/components/HarnaCard';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import usePullRefresh from '../hooks/usePullRefresh';
@@ -239,45 +240,18 @@ export default function WorkerHomeScreen() {
             onPress={() => router.push('/wallet')}
             style={{ alignSelf: 'stretch' }}
           >
-            <LinearGradient
-              colors={['#2a4468', '#15263f', '#0b1626']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={s.card}
-            >
-              <View style={[s.sheen, s.sheenA]} />
-              <View style={[s.sheen, s.sheenB]} />
-              <View style={s.rowBetween}>
-                <Text style={s.cardBrand}>HARNA</Text>
-                <Ionicons
-                  name="wifi"
-                  size={24}
-                  color="rgba(255,255,255,0.75)"
-                  style={{ transform: [{ rotate: '90deg' }] }}
-                />
-              </View>
-              <View style={s.emv}>
-                <View style={s.chipLineH} />
-                <View style={[s.chipLineH, { top: '66%' }]} />
-                <View style={s.chipLineV} />
-              </View>
-              <View>
-                <Text style={s.cardLabel}>{tr('workerHome.balance')}</Text>
-                <Text style={s.cardAmount} numberOfLines={1} adjustsFontSizeToFit>
-                  {balance.data
-                    ? money(
-                        Number(balance.data.wallet_balance) + Number(balance.data.bonus_balance)
-                      )
-                    : '—'}
-                  <Text style={s.cardCur}> {tr('workerHome.som')}</Text>
-                </Text>
-              </View>
-              <View style={s.rowBetween}>
-                <Text style={s.cardHolder} numberOfLines={1}>
-                  {holder || 'HARNA USTA'}
-                </Text>
-              </View>
-            </LinearGradient>
+            <HarnaCard
+              label={tr('workerHome.balance')}
+              balance={
+                balance.data
+                  ? `${money(
+                      Number(balance.data.wallet_balance) + Number(balance.data.bonus_balance)
+                    )} ${tr('workerHome.som')}`
+                  : '—'
+              }
+              name={holder || 'HARNA USTA'}
+              style={{ marginTop: 12 }}
+            />
           </TouchableOpacity>
 
           {/* ── Eng yaxshi / faol buyurtmalar (avtomatik karusel) ── */}
@@ -979,68 +953,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeTxt: { color: '#fff', fontSize: 11, fontWeight: '800' },
-  card: {
-    width: '100%',
-    aspectRatio: 1.7,
-    borderRadius: 22,
-    padding: 20,
-    justifyContent: 'space-between',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    marginTop: 12,
-  },
-  sheen: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.06)' },
-  sheenA: { width: 260, height: 260, top: -120, right: -80 },
-  sheenB: {
-    width: 200,
-    height: 200,
-    bottom: -110,
-    left: -60,
-    backgroundColor: 'rgba(232,122,69,0.12)',
-  },
-  cardBrand: { color: '#fff', fontSize: 17, fontWeight: '900', letterSpacing: 3 },
-  emv: {
-    width: 44,
-    height: 33,
-    borderRadius: 7,
-    backgroundColor: '#e3c16f',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.25)',
-  },
-  chipLineH: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: '33%',
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  chipLineV: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    left: '50%',
-    width: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-  },
-  cardLabel: {
-    color: 'rgba(255,255,255,0.55)',
-    fontSize: 11,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-  },
-  cardAmount: { color: '#fff', fontSize: 28, fontWeight: '800', marginTop: 2 },
-  cardCur: { fontSize: 15, fontWeight: '600', color: 'rgba(255,255,255,0.7)' },
-  cardHolder: {
-    flex: 1,
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 13,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-  },
-
   avatar: { width: 46, height: 46, borderRadius: 23 },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: 20 },

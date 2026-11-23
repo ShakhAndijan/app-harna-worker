@@ -35,6 +35,14 @@
     },
     "plugins": [
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Karta raqamini o'qish va rasm olish uchun kameradan foydalaniladi.",
+          "photosPermission": "Profil va e'lon rasmlarini tanlash uchun galereyadan foydalaniladi.",
+          "microphonePermission": false
+        }
+      ],
       "expo-location",
       "expo-secure-store",
       "expo-image",

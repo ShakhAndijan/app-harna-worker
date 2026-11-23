@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   TextInput,
   StyleSheet,
+  Platform,
   ScrollView,
   RefreshControl,
 } from 'react-native';
@@ -73,6 +74,8 @@ export function Screen({
         bottomSpace && { paddingBottom: 110 },
       ]}
       keyboardShouldPersistTaps="handled"
+      keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      automaticallyAdjustKeyboardInsets
       showsVerticalScrollIndicator={false}
       refreshControl={
         onRefresh ? (

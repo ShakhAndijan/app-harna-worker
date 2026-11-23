@@ -97,6 +97,8 @@ export const requestWithdrawal = (body) => post('/wallet/me/withdrawals', body);
 export const getTopupIntents = (limit = 50, offset = 0) =>
   get('/wallet/topup/intents', { limit, offset });
 export const getPaymentProviders = () => get('/payments/providers');
+// Paynet / Uzum Bank orqali to'ldirish: ustaning hisob raqami va sozlangan tizimlar (11.11).
+export const getTopupAccount = () => get('/wallet/topup/account');
 export const createTopupIntent = (amountUzs, provider, locale) =>
   request(u('/wallet/topup/intent'), {
     method: 'POST',

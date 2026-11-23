@@ -711,6 +711,66 @@ function CategoryPrices({ cats }) {
   );
 }
 
+// To'lov tarixi: oxirgi 5 ta hamyon harakati; bosilsa to'liq tarix (Hamyon) ochiladi.
+function PaymentHistory() {
+  const router = useRouter();
+  const { theme } = useTheme();
+  const { t, language } = useLanguage();
+  const q = useQuery({ queryKey: ['w', 'tx'], queryFn: () => api.getTransactions(50) });
+  const items = (q.data || []).slice(0, 5);
+  if (!items.length) return null;
+  return (
+    <Card style={{ gap: 0 }}>
+      <TouchableOpacity
+        onPress={() => router.push('/wallet')}
+        activeOpacity={0.7}
+        style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 6 }}
+      >
+        <Txt style={{ flex: 1, fontWeight: '800' }}>{t('w.wallet.history')}</Txt>
+        <Text style={{ color: theme.orange, fontWeight: '700', fontSize: 13 }}>
+          {t('w.wallet.title')} →
+        </Text>
+      </TouchableOpacity>
+      {items.map((x) => {
+        const plus = num(x.amount) >= 0;
+        const key = `w.tx.${x.type}`;
+        const color = plus ? theme.green : theme.red;
+        return (
+          <TouchableOpacity
+            key={x.id}
+            onPress={() => router.push('/wallet')}
+            activeOpacity={0.7}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 7 }}
+          >
+            <View
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: color + '1f',
+              }}
+            >
+              <Ionicons name={plus ? 'arrow-down' : 'arrow-up'} size={18} color={color} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt style={{ fontWeight: '700', fontSize: 14 }} numberOfLines={1}>
+                {t(key) === key ? x.type : t(key)}
+              </Txt>
+              <Muted style={{ fontSize: 11.5 }}>{fmtDate(x.created_at, language)}</Muted>
+            </View>
+            <Text style={{ color, fontWeight: '800', fontSize: 14.5 }}>
+              {plus ? '+' : '−'}
+              {money(Math.abs(num(x.amount)), t)}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </Card>
+  );
+}
+
 function InfoTab({ w }) {
   const { t } = useLanguage();
   const cats = w.categories || [];
@@ -736,6 +796,7 @@ function InfoTab({ w }) {
         {w.bio ? <Txt>{w.bio}</Txt> : <Muted>{t('w.profile.noBio')}</Muted>}
       </Card>
       {cats.length ? <CategoryPrices cats={cats} /> : null}
+      <PaymentHistory />
       {rows.length ? (
         <Card>
           {rows.map(([icon, label, value]) => (
