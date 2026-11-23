@@ -6,13 +6,22 @@ import { request } from '../utils/request';
 
 /**
  * Tokenni saqlaydi (token bo'yicha upsert); javob `{ devices }` — foydalanuvchining qurilmalari soni.
- * `format: 'notification'` — FCM'ning tayyor title/body xabari: ilova yopiq bo'lsa ham tizim o'zi ko'rsatadi.
+ * `format: 'expo'` — FCM faqat ma'lumot yuboradi, `expo-notifications` o'qiydigan ko'rinishda; xabarni
+ * ilova o'zi ko'rsatadi (Harna ilovalari shunday, backend dasturchisining mobile-shared/src/lib/push.ts kabi).
  * `locale` — xabar matni tili.
  */
-export function registerPushDevice({ token, platform, locale, appVersion }) {
+export function registerPushDevice({ token, platform, locale, appVersion, appId }) {
   return request(ENDPOINTS.PUSH_DEVICES, {
     method: 'POST',
-    body: { token, platform, format: 'notification', locale, app_version: appVersion },
+    body: {
+      token,
+      platform,
+      format: 'expo',
+      locale,
+      app_version: appVersion,
+      // Ilovaning o'z id si (Android paketi / iOS bundle id): APNs va Push Kit tokenni faqat o'z ilovasi nomi ostida qabul qiladi.
+      app_id: appId,
+    },
     timeout: 10000,
     fallbackMessage: 'Push qurilmasi saqlanmadi',
   });

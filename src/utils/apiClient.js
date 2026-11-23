@@ -52,7 +52,7 @@ async function requestRefresh() {
 
 // Bir vaqtda bir nechta so'rov 401 olsa, refresh BITTA marta yuboriladi (token bir martalik).
 let refreshing = null;
-function refreshSession() {
+export function refreshSession() {
   if (!refreshing) {
     refreshing = requestRefresh().finally(() => {
       refreshing = null;

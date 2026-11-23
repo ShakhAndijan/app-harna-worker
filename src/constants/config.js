@@ -22,8 +22,9 @@ export const FEATURES = {
   overallStats: false,
   // Profildagi "Manzillarim" (saqlangan manzillar ro'yxati): hozircha yashirin, ekran saqlab qo'yilgan.
   savedAddresses: false,
-  // Mobil push (expo-notifications): vaqtincha o'chirilgan. Qaytarish uchun true qiling.
-  pushNotifications: false,
+  // Mobil push (expo-notifications, FCM/APNs): yoqilgan. Android uchun build'dagi google-services.json
+  // va serverda shu ilova (uz.harna.usta) uchun Firebase/APNs sozlamalari kerak, aks holda token chiqmaydi.
+  pushNotifications: true,
 };
 
 // Qo'llab-quvvatlash aloqa ma'lumotlari — saytdagi (dev.harna.uz/config.json) bilan bir xil.

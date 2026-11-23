@@ -33,10 +33,17 @@ function notif() {
 async function ensureChannel() {
   if (Platform.OS !== 'android') return;
   await notif().setNotificationChannelAsync(PUSH_CHANNEL_ID, {
-    name: 'harna.usta.uz',
+    name: 'Harna',
     importance: notif().AndroidImportance.HIGH,
-    vibrationPattern: [0, 250, 250, 250],
+    sound: 'default',
+    vibrationPattern: [0, 200, 120, 200],
     lightColor: '#f97316',
+  });
+  // Server ovozsiz xabarlarni (masalan «Band» ustasiga) shu kanalga yuboradi.
+  await notif().setNotificationChannelAsync('quiet', {
+    name: 'Harna — ovozsiz',
+    importance: notif().AndroidImportance.LOW,
+    sound: null,
   });
 }
 
@@ -102,6 +109,10 @@ export async function registerPush({ locale, ask = false }) {
       platform: Platform.OS,
       locale,
       appVersion: Constants.expoConfig?.version ?? null,
+      appId:
+        (Platform.OS === 'ios'
+          ? Constants.expoConfig?.ios?.bundleIdentifier
+          : Constants.expoConfig?.android?.package) ?? null,
     });
     await AsyncStorage.setItem(REGISTERED_KEY, JSON.stringify({ token, locale }));
     devLog('[push] token backendga yuborildi');

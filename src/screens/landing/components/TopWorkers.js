@@ -6,6 +6,7 @@ import { COLORS } from '../../../constants/colors';
 import { useLanguage } from '../../../context/LanguageContext';
 import { getWorkers } from '../../../api/workers';
 import { formatYears } from '../../../utils/format';
+import LiveOnlineDot from '../../../components/LiveOnlineDot';
 
 // "Eng zo'r ustalar": reyting bo'yicha 5 ta usta. Ma'lumot bo'lmasa — chizilmaydi.
 export default function TopWorkers({ onSelectUsta }) {
@@ -45,7 +46,7 @@ export default function TopWorkers({ onSelectUsta }) {
                 <Text style={styles.rankText}>#1</Text>
               </View>
             )}
-            {worker.is_online && <View style={styles.onlineDot} />}
+            <LiveOnlineDot id={worker.id} fallback={worker.is_online} style={styles.onlineDot} />
           </View>
 
           <View style={styles.info}>

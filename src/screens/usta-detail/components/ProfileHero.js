@@ -22,6 +22,7 @@ export default function ProfileHero({
   photo,
   bio,
   isOnline,
+  availability,
   isIdentityVerified,
   avgResponseMin,
   showLoader,
@@ -74,12 +75,23 @@ export default function ProfileHero({
             <Ionicons name="star" size={13} color="#ffd25e" />
             <Text style={st.heroPillTxt}>{rating}</Text>
           </View>
-          {isOnline && (
+          {availability === 'busy' || availability === 'offline' ? (
+            <View style={st.heroPill}>
+              <Ionicons
+                name={availability === 'busy' ? 'time-outline' : 'moon-outline'}
+                size={13}
+                color="#fff"
+              />
+              <Text style={st.heroPillTxt}>
+                {tr(availability === 'busy' ? 'ustaDetail.busy' : 'ustaDetail.resting')}
+              </Text>
+            </View>
+          ) : isOnline ? (
             <View style={st.heroPill}>
               <View style={st.onlineDot} />
               <Text style={st.heroPillTxt}>{tr('ustaDetail.online')}</Text>
             </View>
-          )}
+          ) : null}
           {avgResponseMin != null && (
             <View style={st.heroPill}>
               <Ionicons name="flash-outline" size={13} color="#fff" />

@@ -249,6 +249,18 @@ export function mapWorkerDetail(w) {
  * @param {number|string} workerId
  * @returns {Promise<ReturnType<mapWorkerDetail>>}
  */
+/**
+ * «Onlayn», «Band» va «Dam olishda» — ko'rsatilgan ustalar uchun (GET /workers/presence, 1–100 ta id).
+ * Javob: [{ id, is_online, availability: 'online'|'busy'|'offline', busy_until }].
+ */
+export async function getWorkersPresence(ids) {
+  const list = await request(`${ENDPOINTS.WORKERS}/presence?ids=${ids.join(',')}`, {
+    timeout: 8000,
+    fallbackMessage: 'Holat yuklanmadi',
+  });
+  return Array.isArray(list) ? list : [];
+}
+
 export async function getWorkerById(workerId) {
   const data = await request(ENDPOINTS.WORKER_DETAIL(workerId), {
     fallbackMessage: "Usta ma'lumoti yuklanmadi",

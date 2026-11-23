@@ -23,6 +23,7 @@ import { UserProvider } from '../context/UserContext';
 import { WalletProvider } from '../context/WalletContext';
 import { markStartup } from '../utils/startup';
 import usePreferencesSync from '../hooks/usePreferencesSync';
+import useRealtime from '../hooks/useRealtime';
 import ConsentGate from '../components/ConsentGate';
 import { FEATURES } from '../constants/config';
 import '../utils/devWarnings';
@@ -61,7 +62,10 @@ export default function RootLayout() {
 }
 
 function RootNavigator() {
-  const { checked, locked, unlocking, retryUnlock, abandonSession, signedIn } = useAuth();
+  const { checked, locked, unlocking, retryUnlock, abandonSession, signedIn, accountDeleted } =
+    useAuth();
+  // Jonli kanal (Socket.IO): server «o'zgardi» desa, ochiq ekranlar darrov yangilanadi.
+  useRealtime(signedIn && !locked, accountDeleted);
   const { theme: t } = useTheme();
 
   // Navigatsiya fon rangi ilova mavzusi bilan bir xil bo'lishi kerak, aks holda ekran almashganda

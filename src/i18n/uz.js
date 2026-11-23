@@ -974,6 +974,8 @@ export const uz = {
     headerTitle: 'Mutaxassis profili',
     shareMessage: "{name} — {trade} mutaxassis, reyting {rating} ★. Ilovada ko'ring!",
     online: 'Onlayn',
+    busy: 'Band',
+    resting: 'Dam olishda',
     avgResponse: '· ~{time} ichida javob',
     time: { min: '{n} daq', hour: '{n} soat', day: '{n} kun' },
     trust: {

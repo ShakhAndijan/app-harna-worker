@@ -967,6 +967,8 @@ export const en = {
     headerTitle: 'Pro profile',
     shareMessage: '{name} — {trade} pro, rating {rating} ★. Check them out in the app!',
     online: 'Online',
+    busy: 'Busy',
+    resting: 'Off hours',
     avgResponse: '· replies in ~{time}',
     time: { min: '{n} min', hour: '{n} h', day: '{n} d' },
     trust: {

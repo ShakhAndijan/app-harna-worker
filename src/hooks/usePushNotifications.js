@@ -8,6 +8,27 @@ import { markNotificationRead } from '../api/notifications';
 import { notificationHref } from '../screens/notifications/utils';
 import { pushData, registerPush } from '../utils/push';
 
+// Bosilgan xabar qayerga olib borishi: server `type`, `payload` va `notification_id` ni yuboradi (qo'ng'iroqcha
+// qatori bilan bir xil). Usta uchun buyurtma/taklif xabarlari buyurtma sahifasini ochadi.
+function pushHref(data) {
+  const type = String(data.type ?? '');
+  let payload = data.payload;
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload);
+    } catch {
+      payload = null;
+    }
+  }
+  const p = payload && typeof payload === 'object' ? payload : {};
+  const orderId = p.order_id ?? data.order_id;
+  if (orderId != null && /^(order|offer)\./.test(type)) {
+    return { pathname: '/order/[id]', params: { id: String(orderId) } };
+  }
+  const href = notificationHref({ type, payload: p });
+  return href === '/orders' ? '/notifications' : href;
+}
+
 // Kirgan foydalanuvchi uchun push: tokenni backendga yuboradi, bildirishnomaga bosilganda kerakli
 // ekranni ochadi. Yuborishni backend FCM orqali qiladi (ilova yopiq bo'lsa ham keladi); bu yerda
 // faqat token va bosilishni qayta ishlash.
@@ -54,7 +75,7 @@ export default function usePushNotifications() {
     }
     // AuthRedirect bosh sahifaga o'tkazib bo'lgach, uning ustiga ochiladi.
     setTimeout(() => {
-      router.push(notificationHref({ type: String(data.type ?? ''), payload: data }));
+      router.push(pushHref(data));
     }, 0);
     return undefined;
   }, [response, signedIn, locked, navState?.key, router, queryClient]);

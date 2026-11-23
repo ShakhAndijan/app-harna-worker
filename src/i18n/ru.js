@@ -970,6 +970,8 @@ export const ru = {
     headerTitle: 'Профиль мастера',
     shareMessage: '{name} — мастер {trade}, рейтинг {rating} ★. Смотрите в приложении!',
     online: 'Онлайн',
+    busy: 'Занят',
+    resting: 'Отдыхает',
     avgResponse: '· ответ ~за {time}',
     time: { min: '{n} мин', hour: '{n} ч', day: '{n} дн' },
     trust: {

@@ -14,6 +14,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import AppLoader from '../components/AppLoader';
+import LiveOnlineDot from '../components/LiveOnlineDot';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
@@ -185,9 +186,11 @@ export default function ListingDetailScreen({ listingId, initial, onBack }) {
                 ) : (
                   <Text style={s.avatarTxt}>{worker.initial}</Text>
                 )}
-                {worker.online && (
-                  <View style={[s.onlineDot, { backgroundColor: t.green, borderColor: t.card }]} />
-                )}
+                <LiveOnlineDot
+                  id={worker.id}
+                  fallback={worker.online}
+                  style={[s.onlineDot, { backgroundColor: t.green, borderColor: t.card }]}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[s.workerName, { color: t.text }]} numberOfLines={1}>

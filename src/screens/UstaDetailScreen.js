@@ -6,6 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { UstaStyleProvider, useUstaStyles } from './usta-detail/styles';
 import useUstaDetail from './usta-detail/hooks/useUstaDetail';
 import usePullRefresh from '../hooks/usePullRefresh';
+import useLivePresence from '../hooks/useLivePresence';
 import { pickProfile, buildBadges, buildStatItems, buildSchedule } from './usta-detail/derive';
 import DetailHeader from './usta-detail/components/DetailHeader';
 import ProfileHero from './usta-detail/components/ProfileHero';
@@ -65,6 +66,8 @@ function UstaDetailContent({
   const { d, initial, name, trade, rating, rawRating, bgColor, location, experience, bio } =
     profile;
 
+  const presence = useLivePresence(usta?.id ?? d?.id);
+
   const categories = detail?.categories || [];
   const portfolio = detail?.portfolio || [];
   const reviewItems = portfolio.filter((p) => p.comment || p.rating != null);
@@ -112,7 +115,8 @@ function UstaDetailContent({
             bgColor={bgColor}
             photo={d.profile_photo}
             bio={bio}
-            isOnline={profile.isOnline}
+            isOnline={presence ? presence.is_online : profile.isOnline}
+            availability={presence?.availability}
             isIdentityVerified={!!detail?.isIdentityVerified}
             avgResponseMin={detail?.avgResponseMin}
             showLoader={loadingDetail && !detail}

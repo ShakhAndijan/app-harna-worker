@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../../context/ThemeContext';
 import { useLanguage } from '../../../context/LanguageContext';
 import Avatar from '../../../components/Avatar';
+import LiveOnlineDot from '../../../components/LiveOnlineDot';
 import SectionLoader from './SectionLoader';
 import SectionError from './SectionError';
 import EmptyCard from './EmptyCard';
@@ -53,7 +54,11 @@ export default function TopWorkers({ state, onSelectUsta, onRetry }) {
                 <Text style={{ fontSize: 9, fontWeight: '800', color: '#3a2a08' }}>#1</Text>
               </View>
             )}
-            {u.is_online && <View style={[s.onlineDot, { borderColor: t.card }]} />}
+            <LiveOnlineDot
+              id={u.id}
+              fallback={u.is_online}
+              style={[s.onlineDot, { borderColor: t.card }]}
+            />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>{u.name}</Text>
